@@ -141,64 +141,8 @@
   to { transform: rotate(360deg); }
 }
 
-/* Dashboard Filter Section */
-.dashboard-filter-section {
-  background: white;
-  border-radius: 16px;
-  padding: 24px;
-  margin-bottom: 32px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-  border: 2px solid #667eea;
-}
-
-.filter-label {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 1.1rem;
-  font-weight: 800;
-  color: #2d3748;
-  margin-bottom: 16px;
-}
-
-.filter-icon {
-  font-size: 1.5rem;
-}
-
-/* Period Selector */
-.period-selector {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.period-btn {
-  padding: 12px 24px;
-  background: white;
-  border: 2px solid #e2e8f0;
-  border-radius: 10px;
-  font-size: 0.95rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  color: #4a5568;
-}
-
-.period-btn:hover {
-  border-color: #667eea;
-  background: #f7fafc;
-  transform: translateY(-2px);
-}
-
-.period-btn.active {
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: white;
-  border-color: #667eea;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-}
-
-/* Quick Stats Grid */
-.quick-stats-grid {
+/* Stock Status Grid - INCOMING STOCK & USAGE */
+.stock-status-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 24px;
@@ -220,6 +164,22 @@
 .stat-box:hover {
   transform: translateY(-8px);
   box-shadow: 0 12px 40px rgba(0,0,0,0.1);
+}
+
+.stat-box.total-stock {
+  border-color: #48bb78;
+}
+
+.stat-box.used-stock {
+  border-color: #ed8936;
+}
+
+.stat-box.available-stock {
+  border-color: #10b981;
+}
+
+.stat-box.required-stock {
+  border-color: #4299e1;
 }
 
 .stat-box.green {
@@ -246,6 +206,22 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
+
+.stat-box.total-stock .stat-icon-box {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+}
+
+.stat-box.used-stock .stat-icon-box {
+  background: linear-gradient(135deg, #fed7aa, #fdba74);
+}
+
+.stat-box.available-stock .stat-icon-box {
+  background: linear-gradient(135deg, #a7f3d0, #6ee7b7);
+}
+
+.stat-box.required-stock .stat-icon-box {
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
 }
 
 .stat-box.green .stat-icon-box {
@@ -292,6 +268,14 @@
   font-weight: 700;
   color: var(--text-primary);
   margin-top: 8px;
+}
+
+/* Quick Stats Grid */
+.quick-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 24px;
+  margin-bottom: 32px;
 }
 
 /* Material Stock Dashboard Section */
@@ -453,6 +437,109 @@
   color: #718096;
   font-weight: 600;
   align-self: flex-end;
+}
+
+/* WASTE ANALYSIS DASHBOARD */
+.waste-analysis-dashboard {
+  background: white;
+  border-radius: 20px;
+  padding: 32px;
+  margin-bottom: 32px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+  border: 2px solid #f56565;
+}
+
+.waste-analysis-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 28px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #fed7d7;
+}
+
+.waste-analysis-header h2 {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #2d3748;
+  margin: 0;
+}
+
+.waste-total {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #f56565;
+  background: linear-gradient(135deg, #fed7d7, #fbb6ce);
+  padding: 8px 16px;
+  border-radius: 12px;
+}
+
+.waste-analysis-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+.waste-analysis-card {
+  background: linear-gradient(135deg, #fafbfc 0%, #f5f7fa 100%);
+  border-radius: 16px;
+  padding: 20px;
+  border: 2px solid #fed7d7;
+  transition: all 0.3s ease;
+}
+
+.waste-analysis-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 24px rgba(245, 101, 101, 0.2);
+  border-color: #f56565;
+}
+
+.waste-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.waste-card-icon {
+  font-size: 2rem;
+}
+
+.waste-card-header h3 {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #2d3748;
+  margin: 0;
+}
+
+.waste-card-content {
+  margin-bottom: 12px;
+}
+
+.waste-card-value {
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: #f56565;
+}
+
+.waste-card-percentage {
+  font-size: 0.8rem;
+  color: #718096;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.waste-card-bar {
+  height: 10px;
+  background: #e2e8f0;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.waste-card-fill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 1s ease-out;
 }
 
 /* Monthly Comparison Section */
@@ -757,12 +844,16 @@
   background: #ed8936;
 }
 
-.waste-dot.bhuki {
+.waste-dot.endpiece {
   background: #9f7aea;
 }
 
-.waste-dot.babari {
+.waste-dot.bhuki {
   background: #f56565;
+}
+
+.waste-dot.babari {
+  background: #fbbf24;
 }
 
 /* Activity Timeline */
@@ -898,6 +989,10 @@
   .dashboard-grid {
     grid-template-columns: 1fr;
   }
+
+  .stock-status-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (max-width: 768px) {
@@ -947,6 +1042,10 @@
     grid-template-columns: 1fr;
   }
 
+  .stock-status-grid {
+    grid-template-columns: 1fr;
+  }
+
   .period-selector {
     width: 100%;
   }
@@ -965,6 +1064,10 @@
   }
 
   .quick-actions-modern {
+    grid-template-columns: 1fr;
+  }
+
+  .waste-analysis-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -994,6 +1097,21 @@
 
   .stat-info h3 {
     font-size: 2rem;
+  }
+
+  .stock-status-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .waste-analysis-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .waste-total {
+    width: 100%;
+    text-align: center;
   }
 }
 

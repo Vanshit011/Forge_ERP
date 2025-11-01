@@ -946,3 +946,250 @@
     align-self: flex-end;
   }
 }
+/* Clickable Material Bar */
+.material-bar-item.clickable {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.material-bar-item.clickable:hover {
+  transform: translateX(5px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+}
+
+.breakdown-hint {
+  font-size: 0.9rem;
+  color: #667eea;
+  font-weight: 600;
+  margin: -12px 0 20px 0;
+  font-style: italic;
+}
+
+.click-hint {
+  color: #667eea;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* Modal Overlay */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeIn 0.2s ease-out;
+  padding: 20px;
+}
+
+/* Diameter Breakdown Modal */
+.diameter-breakdown-modal {
+  background: white;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease-out;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 28px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+}
+
+.modal-header h2 {
+  font-size: 1.3rem;
+  font-weight: 900;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.material-dot-large {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 3px solid white;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.close-modal-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-modal-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
+}
+
+.modal-body {
+  padding: 28px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.empty-breakdown {
+  text-align: center;
+  padding: 40px;
+  color: #718096;
+  font-weight: 600;
+}
+
+.diameter-breakdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.diameter-item {
+  background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+  border-radius: 12px;
+  padding: 20px;
+  border: 2px solid #e2e8f0;
+  transition: all 0.3s ease;
+}
+
+.diameter-item:hover {
+  border-color: #48bb78;
+  transform: translateX(5px);
+  box-shadow: 0 4px 12px rgba(72, 187, 120, 0.2);
+}
+
+.diameter-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.diameter-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.diameter-icon {
+  font-size: 1.5rem;
+}
+
+.diameter-value {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #2d3748;
+}
+
+.quantity-badge {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #48bb78, #38a169);
+  color: white;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 1.1rem;
+  box-shadow: 0 2px 8px rgba(72, 187, 120, 0.3);
+}
+
+.diameter-item-meta {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 12px;
+}
+
+.meta-item {
+  font-size: 0.9rem;
+  color: #718096;
+  font-weight: 600;
+}
+
+.meta-item strong {
+  color: #2d3748;
+  font-weight: 800;
+}
+
+.diameter-progress-bar-mini {
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.diameter-progress-fill-mini {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: progressGrow 1.5s ease-out;
+}
+
+.modal-footer {
+  padding: 20px 28px;
+  background: #f7fafc;
+  border-top: 2px solid #e2e8f0;
+}
+
+.total-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1.1rem;
+  color: #2d3748;
+  font-weight: 600;
+}
+
+.total-summary strong {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: #48bb78;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .diameter-breakdown-modal {
+    max-width: 95%;
+    max-height: 90vh;
+  }
+
+  .modal-header h2 {
+    font-size: 1.1rem;
+  }
+
+  .modal-body {
+    padding: 20px;
+  }
+
+  .diameter-item-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .quantity-badge {
+    align-self: flex-end;
+  }
+
+  .diameter-item-meta {
+    flex-direction: column;
+    gap: 8px;
+  }
+}

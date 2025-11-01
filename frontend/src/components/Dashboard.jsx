@@ -8,25 +8,31 @@ function Dashboard() {
   const [stats, setStats] = useState({
     totalStock: 0,
     totalQuantity: 0,
+    availableQuantity: 0,
+    usedQuantity: 0,
     totalSharings: 0,
     totalCirculars: 0,
     totalPieces: 0,
     totalWaste: 0,
     sharingWaste: 0,
     circularWaste: 0,
+    wastePercentage: 0,
     totalBhuki: 0,
     totalForgings: 0,
     totalOkPieces: 0,
     totalScrap: 0,
     totalRejection: 0,
     totalBabari: 0,
-    avgEfficiency: 0
+    avgEfficiency: 0,
+    totalSteelRequired: 0,
+    endPieceWaste: 0
   });
   const [recentActivities, setRecentActivities] = useState([]);
   const [monthlyStockStats, setMonthlyStockStats] = useState([]);
   const [monthlyCuttingStats, setMonthlyCuttingStats] = useState([]);
   const [monthlyForgingStats, setMonthlyForgingStats] = useState([]);
   const [materialSummary, setMaterialSummary] = useState([]);
+  const [wasteBreakdown, setWasteBreakdown] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState('all');
 
@@ -106,12 +112,22 @@ function Dashboard() {
 
       // Calculate stats
       const totalQuantity = stocks.reduce((sum, s) => sum + (s.quantity || 0), 0);
+      const usedQuantity = cuttings.reduce((sum, c) => sum + (c.calculations?.totalSteelUsed || 0), 0);
+      const availableQuantity = totalQuantity - usedQuantity;
+
       const sharings = cuttings.filter(c => c.cuttingType === 'SHARING');
       const circulars = cuttings.filter(c => c.cuttingType === 'CIRCULAR');
+      
       const sharingWaste = sharings.reduce((sum, c) => sum + (c.calculations?.totalWaste || 0), 0);
       const circularWaste = circulars.reduce((sum, c) => sum + (c.calculations?.totalWaste || 0), 0);
+      const endPieceWaste = cuttings.reduce((sum, c) => sum + (c.calculations?.endPieceUsed || 0), 0);
       const totalBhuki = circulars.reduce((sum, c) => sum + (c.calculations?.totalBhuki || 0), 0);
+      const totalWaste = sharingWaste + circularWaste;
+      const wastePercentage = usedQuantity > 0 ? (totalWaste / usedQuantity) * 100 : 0;
+
       const totalPieces = cuttings.reduce((sum, c) => sum + (c.calculations?.totalPieces || 0), 0);
+      const totalSteelRequired = cuttings.reduce((sum, c) => sum + (c.calculations?.totalSteelUsed || 0), 0);
+      
       const totalOkPieces = forgings.reduce((sum, f) => sum + (f.forgingResults?.finalOkPieces || 0), 0);
       const totalScrap = forgings.reduce((sum, f) => sum + (f.forgingResults?.scrapPieces || 0), 0);
       const totalRejection = forgings.reduce((sum, f) => sum + (f.rejectionQty || 0), 0);
@@ -123,20 +139,34 @@ function Dashboard() {
       setStats({
         totalStock: stocks.length,
         totalQuantity,
+        availableQuantity,
+        usedQuantity,
         totalSharings: sharings.length,
         totalCirculars: circulars.length,
         totalPieces,
-        totalWaste: sharingWaste + circularWaste,
+        totalWaste,
         sharingWaste,
         circularWaste,
+        wastePercentage,
         totalBhuki,
         totalForgings: forgings.length,
         totalOkPieces,
         totalScrap,
         totalRejection,
         totalBabari,
-        avgEfficiency
+        avgEfficiency,
+        totalSteelRequired,
+        endPieceWaste
       });
+
+      // Waste breakdown
+      setWasteBreakdown([
+        { type: 'Sharing Waste', value: sharingWaste, color: '#4299e1', icon: '🔧' },
+        { type: 'Circular Waste', value: circularWaste, color: '#ed8936', icon: '⭕' },
+        { type: 'End Piece', value: endPieceWaste, color: '#9f7aea', icon: '📏' },
+        { type: 'Bhuki/Scrap', value: totalBhuki, color: '#f56565', icon: '🔥' },
+        { type: 'Babari', value: totalBabari, color: '#fbbf24', icon: '💛' }
+      ]);
 
       // Combine recent activities
       const activities = [
@@ -152,7 +182,7 @@ function Dashboard() {
           type: 'cutting',
           icon: c.cuttingType === 'SHARING' ? '🔧' : '⭕',
           title: c.partName,
-          subtitle: `${c.cuttingType} • ${c.calculations?.totalPieces || 0} pieces`,
+          subtitle: `${c.cuttingType} • ${c.calculations?.totalPieces || 0} pieces • Waste: ${c.calculations?.totalWaste.toFixed(2) || 0}kg`,
           date: c.date,
           color: '#ed8936'
         })),
@@ -233,22 +263,50 @@ function Dashboard() {
         </button>
       </div>
 
-      {/* Period Filter */}
-      <div className="dashboard-filter-section">
-        <div className="filter-label">
-          <span className="filter-icon">📅</span>
-          <span>View Data for:</span>
+      {/* Stock Status Grid - INCOMING STOCK & USAGE */}
+      <div className="stock-status-grid">
+        <div className="stat-box total-stock">
+          <div className="stat-icon-box">
+            <span className="stat-icon">📦</span>
+          </div>
+          <div className="stat-info">
+            <h3>{stats.totalQuantity.toFixed(0)} kg</h3>
+            <p>Total Stock Available</p>
+            <span className="stat-badge">{stats.totalStock} items</span>
+          </div>
         </div>
-        <div className="period-selector">
-          {periodOptions.map(period => (
-            <button
-              key={period.value}
-              className={`period-btn ${selectedPeriod === period.value ? 'active' : ''}`}
-              onClick={() => setSelectedPeriod(period.value)}
-            >
-              {period.label}
-            </button>
-          ))}
+
+        <div className="stat-box used-stock">
+          <div className="stat-icon-box">
+            <span className="stat-icon">✂️</span>
+          </div>
+          <div className="stat-info">
+            <h3>{stats.usedQuantity.toFixed(2)} kg</h3>
+            <p>Steel Used in Cutting</p>
+            <span className="stat-badge">{stats.totalPieces} pieces</span>
+          </div>
+        </div>
+
+        <div className="stat-box available-stock">
+          <div className="stat-icon-box">
+            <span className="stat-icon">✅</span>
+          </div>
+          <div className="stat-info">
+            <h3>{stats.availableQuantity.toFixed(2)} kg</h3>
+            <p>Available for Use</p>
+            <span className="stat-badge">{((stats.availableQuantity / stats.totalQuantity) * 100).toFixed(1)}%</span>
+          </div>
+        </div>
+
+        <div className="stat-box required-stock">
+          <div className="stat-icon-box">
+            <span className="stat-icon">🎯</span>
+          </div>
+          <div className="stat-info">
+            <h3>{stats.totalSteelRequired.toFixed(2)} kg</h3>
+            <p>Steel Required for Cutting</p>
+            <span className="stat-badge">{stats.totalSharings + stats.totalCirculars} ops</span>
+          </div>
         </div>
       </div>
 
@@ -256,29 +314,7 @@ function Dashboard() {
       <div className="quick-stats-grid">
         <div className="stat-box green">
           <div className="stat-icon-box">
-            <span className="stat-icon">📦</span>
-          </div>
-          <div className="stat-info">
-            <h3>{stats.totalStock}</h3>
-            <p>Stock Items</p>
-            <span className="stat-badge">{stats.totalQuantity.toFixed(0)} kg</span>
-          </div>
-        </div>
-
-        <div className="stat-box blue">
-          <div className="stat-icon-box">
-            <span className="stat-icon">✂️</span>
-          </div>
-          <div className="stat-info">
-            <h3>{stats.totalSharings + stats.totalCirculars}</h3>
-            <p>Cutting Ops</p>
-            <span className="stat-badge">{stats.totalPieces} pieces</span>
-          </div>
-        </div>
-
-        <div className="stat-box purple">
-          <div className="stat-icon-box">
-            <span className="stat-icon">🔨</span>
+            <span className="stat-icon">🏭</span>
           </div>
           <div className="stat-info">
             <h3>{stats.totalForgings}</h3>
@@ -287,7 +323,7 @@ function Dashboard() {
           </div>
         </div>
 
-        <div className="stat-box orange">
+        <div className="stat-box blue">
           <div className="stat-icon-box">
             <span className="stat-icon">📈</span>
           </div>
@@ -295,6 +331,28 @@ function Dashboard() {
             <h3>{stats.avgEfficiency.toFixed(1)}%</h3>
             <p>Efficiency</p>
             <span className="stat-badge">Avg Rate</span>
+          </div>
+        </div>
+
+        <div className="stat-box purple">
+          <div className="stat-icon-box">
+            <span className="stat-icon">🔨</span>
+          </div>
+          <div className="stat-info">
+            <h3>{stats.totalScrap}</h3>
+            <p>Scrap Pieces</p>
+            <span className="stat-badge">{stats.totalRejection} rejected</span>
+          </div>
+        </div>
+
+        <div className="stat-box orange">
+          <div className="stat-icon-box">
+            <span className="stat-icon">⚠️</span>
+          </div>
+          <div className="stat-info">
+            <h3>{stats.totalWaste.toFixed(2)} kg</h3>
+            <p>Total Waste</p>
+            <span className="stat-badge">{stats.wastePercentage.toFixed(1)}% loss</span>
           </div>
         </div>
       </div>
@@ -350,6 +408,40 @@ function Dashboard() {
               </div>
             ))
           )}
+        </div>
+      </div>
+
+      {/* Waste Analysis Dashboard */}
+      <div className="waste-analysis-dashboard">
+        <div className="waste-analysis-header">
+          <h2>🗑️ Comprehensive Waste Analysis</h2>
+          <span className="waste-total">Total: {stats.totalWaste.toFixed(2)} kg ({stats.wastePercentage.toFixed(1)}%)</span>
+        </div>
+
+        <div className="waste-analysis-grid">
+          {wasteBreakdown.map((waste, idx) => (
+            <div key={idx} className="waste-analysis-card">
+              <div className="waste-card-header">
+                <span className="waste-card-icon">{waste.icon}</span>
+                <h3>{waste.type}</h3>
+              </div>
+              <div className="waste-card-content">
+                <div className="waste-card-value">{waste.value.toFixed(3)} kg</div>
+                <div className="waste-card-percentage">
+                  {((waste.value / (stats.totalQuantity || 1)) * 100).toFixed(2)}% of total stock
+                </div>
+              </div>
+              <div className="waste-card-bar">
+                <div 
+                  className="waste-card-fill"
+                  style={{ 
+                    width: `${(waste.value / stats.totalQuantity) * 100}%`,
+                    backgroundColor: waste.color
+                  }}
+                ></div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -473,10 +565,10 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* Waste Analysis */}
+        {/* Waste Pie Chart */}
         <div className="dashboard-card waste-card">
           <div className="card-header">
-            <h2>🗑️ Waste Analysis</h2>
+            <h2>🗑️ Waste Breakdown</h2>
           </div>
           <div className="waste-chart">
             <div className="waste-circle">
@@ -495,7 +587,7 @@ function Dashboard() {
               </svg>
               <div className="waste-center">
                 <h3>{stats.totalWaste.toFixed(2)}</h3>
-                <p>kg</p>
+                <p>kg ({stats.wastePercentage.toFixed(1)}%)</p>
               </div>
             </div>
             <div className="waste-breakdown">
@@ -506,6 +598,10 @@ function Dashboard() {
               <div className="waste-item">
                 <span className="waste-dot circular"></span>
                 <span>Circular: {stats.circularWaste.toFixed(2)} kg</span>
+              </div>
+              <div className="waste-item">
+                <span className="waste-dot endpiece"></span>
+                <span>End Piece: {stats.endPieceWaste.toFixed(2)} kg</span>
               </div>
               <div className="waste-item">
                 <span className="waste-dot bhuki"></span>

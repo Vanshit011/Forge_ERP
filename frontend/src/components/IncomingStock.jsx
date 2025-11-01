@@ -14,6 +14,10 @@ function IncomingStock() {
   const [editingStock, setEditingStock] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // NEW: States for diameter breakdown modal
+  const [showDiaBreakdown, setShowDiaBreakdown] = useState(false);
+  const [selectedMaterialForBreakdown, setSelectedMaterialForBreakdown] = useState(null);
 
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
@@ -78,7 +82,7 @@ function IncomingStock() {
     setFormData({
       ...formData,
       material: materialInfo.material,
-      dia: '' // Reset diameter when material changes
+      dia: ''
     });
     setShowMaterialSelector(false);
   };
@@ -94,7 +98,6 @@ function IncomingStock() {
     setEditingStock(stock);
     setShowForm(true);
 
-    // Find material info
     const matInfo = materialsInfo.find(m => m.material === stock.material);
     setSelectedMaterialInfo(matInfo);
 
@@ -120,11 +123,9 @@ function IncomingStock() {
       };
 
       if (editingStock) {
-        // Update existing stock
         await axios.put(`${API_URL}/incoming-stock/${editingStock._id}`, payload);
         alert('✅ Stock updated successfully!');
       } else {
-        // Create new stock
         await axios.post(`${API_URL}/incoming-stock`, payload);
         alert('✅ Stock added successfully!');
       }
@@ -162,6 +163,23 @@ function IncomingStock() {
     }
   };
 
+  // NEW: Handle material bar click to show diameter breakdown
+  const handleMaterialBarClick = (materialName) => {
+    setSelectedMaterialForBreakdown(materialName);
+    setShowDiaBreakdown(true);
+  };
+
+  // NEW: Get diameter breakdown for selected material
+  const getDiameterBreakdown = () => {
+    if (!selectedMaterialForBreakdown) return [];
+
+    const materialItems = materialSummary.filter(
+      item => item.material === selectedMaterialForBreakdown
+    );
+
+    return materialItems.sort((a, b) => a.dia - b.dia);
+  };
+
   const filteredStocks = stocks.filter(stock =>
     stock.partName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     stock.partyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -184,7 +202,6 @@ function IncomingStock() {
     return colorMap[colorCode] || '#6b7280';
   };
 
-  // Group summary by material
   const materialBreakdown = materialSummary.reduce((acc, item) => {
     if (!acc[item.material]) {
       acc[item.material] = {
@@ -202,8 +219,90 @@ function IncomingStock() {
   const materialData = Object.values(materialBreakdown);
   const maxQuantity = Math.max(...materialData.map(m => m.totalQuantity), 1);
 
+  const diameterBreakdown = getDiameterBreakdown();
+  const selectedMaterialColor = materialData.find(
+    m => m.material === selectedMaterialForBreakdown
+  )?.colorCode;
+
+  const totalForSelectedMaterial = diameterBreakdown.reduce(
+    (sum, item) => sum + item.totalQuantity, 0
+  );
+
   return (
     <div className="incoming-stock-modern">
+      {/* Diameter Breakdown Modal */}
+      {showDiaBreakdown && (
+        <div className="modal-overlay" onClick={() => setShowDiaBreakdown(false)}>
+          <div className="diameter-breakdown-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>
+                <span 
+                  className="material-dot-large"
+                  style={{ backgroundColor: getColorStyle(selectedMaterialColor) }}
+                ></span>
+                {selectedMaterialForBreakdown} - Diameter Breakdown
+              </h2>
+              <button 
+                className="close-modal-btn"
+                onClick={() => setShowDiaBreakdown(false)}
+              >
+                ✖
+              </button>
+            </div>
+
+            <div className="modal-body">
+              {diameterBreakdown.length === 0 ? (
+                <div className="empty-breakdown">
+                  <p>No data available</p>
+                </div>
+              ) : (
+                <div className="diameter-breakdown-list">
+                  {diameterBreakdown.map((item) => (
+                    <div key={`${item.dia}`} className="diameter-item">
+                      <div className="diameter-item-header">
+                        <div className="diameter-info">
+                          <span className="diameter-icon">📏</span>
+                          <span className="diameter-value">{item.dia} mm</span>
+                        </div>
+                        <div className="quantity-badge">
+                          {item.totalQuantity.toFixed(2)} kg
+                        </div>
+                      </div>
+                      <div className="diameter-item-meta">
+                        <span className="meta-item">
+                          <strong>{item.count}</strong> items
+                        </span>
+                        <span className="meta-item">
+                          Avg: <strong>{(item.avgQuantity || 0).toFixed(2)}</strong> kg/item
+                        </span>
+                      </div>
+                      <div className="diameter-progress-bar-mini">
+                        <div 
+                          className="diameter-progress-fill-mini"
+                          style={{ 
+                            width: `${totalForSelectedMaterial > 0 ? (item.totalQuantity / totalForSelectedMaterial) * 100 : 0}%`,
+                            backgroundColor: getColorStyle(selectedMaterialColor)
+                          }}
+                        ></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="modal-footer">
+                <div className="total-summary">
+                  <span>Total for {selectedMaterialForBreakdown}:</span>
+                  <strong>
+                    {totalForSelectedMaterial.toFixed(2)} kg
+                  </strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header Section */}
       <div className="stock-header">
         <div className="header-left">
@@ -247,6 +346,7 @@ function IncomingStock() {
       {/* Material Breakdown Chart */}
       <div className="material-breakdown-section">
         <h2>📊 Material Stock Breakdown</h2>
+        <p className="breakdown-hint">💡 Click on any material to see diameter-wise breakdown</p>
         <div className="material-chart">
           {materialData.length === 0 ? (
             <div className="empty-chart">
@@ -254,7 +354,11 @@ function IncomingStock() {
             </div>
           ) : (
             materialData.map((mat) => (
-              <div key={mat.material} className="material-bar-item">
+              <div 
+                key={mat.material} 
+                className="material-bar-item clickable"
+                onClick={() => handleMaterialBarClick(mat.material)}
+              >
                 <div className="material-bar-label">
                   <div className="material-info-left">
                     <span
@@ -280,6 +384,7 @@ function IncomingStock() {
                 </div>
                 <div className="material-bar-meta">
                   <span>{mat.items} items</span>
+                  <span className="click-hint">👆 Click for details</span>
                 </div>
               </div>
             ))

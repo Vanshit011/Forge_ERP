@@ -6,58 +6,47 @@ const API_URL = 'http://localhost:5000/api';
 
 function IncomingStock() {
   const [stocks, setStocks] = useState([]);
-  const [monthlyStats, setMonthlyStats] = useState([]);
+  const [materialsInfo, setMaterialsInfo] = useState([]);
+  const [materialSummary, setMaterialSummary] = useState([]);
   const [showForm, setShowForm] = useState(false);
+  const [showMaterialSelector, setShowMaterialSelector] = useState(false);
+  const [selectedMaterialInfo, setSelectedMaterialInfo] = useState(null);
+  const [editingStock, setEditingStock] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [selectedMonth, setSelectedMonth] = useState('all');
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  
+  const [searchTerm, setSearchTerm] = useState('');
+
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     partyName: '',
     dia: '',
     material: '',
-    colorCode: '',
     quantity: '',
     tcReport: '',
     partName: '',
     heatNo: ''
   });
 
-  const months = [
-    { value: 'all', label: 'All Months' },
-    { value: '1', label: 'January' },
-    { value: '2', label: 'February' },
-    { value: '3', label: 'March' },
-    { value: '4', label: 'April' },
-    { value: '5', label: 'May' },
-    { value: '6', label: 'June' },
-    { value: '7', label: 'July' },
-    { value: '8', label: 'August' },
-    { value: '9', label: 'September' },
-    { value: '10', label: 'October' },
-    { value: '11', label: 'November' },
-    { value: '12', label: 'December' }
-  ];
+  // Add keyboard shortcut listener
+  useEffect(() => {
+    const handleTriggerAdd = () => {
+      setShowForm(true);
+      setEditingStock(null);
+    };
 
-  const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
+    window.addEventListener('triggerAddNew', handleTriggerAdd);
+    return () => window.removeEventListener('triggerAddNew', handleTriggerAdd);
+  }, []);
 
   useEffect(() => {
     fetchStocks();
-    fetchMonthlyStats();
-  }, [selectedMonth, selectedYear]);
+    fetchMaterialsInfo();
+    fetchMaterialSummary();
+  }, []);
 
   const fetchStocks = async () => {
     try {
       setLoading(true);
-      let response;
-      
-      if (selectedMonth === 'all') {
-        response = await axios.get(`${API_URL}/incoming-stock`);
-      } else {
-        response = await axios.get(`${API_URL}/incoming-stock/month/${selectedYear}/${selectedMonth}`);
-      }
-      
+      const response = await axios.get(`${API_URL}/incoming-stock`);
       setStocks(response.data.data || []);
       setLoading(false);
     } catch (error) {
@@ -66,13 +55,32 @@ function IncomingStock() {
     }
   };
 
-  const fetchMonthlyStats = async () => {
+  const fetchMaterialsInfo = async () => {
     try {
-      const response = await axios.get(`${API_URL}/incoming-stock/stats/monthly`);
-      setMonthlyStats(response.data.data || []);
+      const response = await axios.get(`${API_URL}/incoming-stock/materials`);
+      setMaterialsInfo(response.data.data || []);
     } catch (error) {
-      console.error('Error fetching monthly stats:', error);
+      console.error('Error fetching materials info:', error);
     }
+  };
+
+  const fetchMaterialSummary = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/incoming-stock/summary`);
+      setMaterialSummary(response.data.data || []);
+    } catch (error) {
+      console.error('Error fetching material summary:', error);
+    }
+  };
+
+  const handleMaterialClick = (materialInfo) => {
+    setSelectedMaterialInfo(materialInfo);
+    setFormData({
+      ...formData,
+      material: materialInfo.material,
+      dia: '' // Reset diameter when material changes
+    });
+    setShowMaterialSelector(false);
   };
 
   const handleInputChange = (e) => {
@@ -82,30 +90,60 @@ function IncomingStock() {
     });
   };
 
+  const handleEdit = (stock) => {
+    setEditingStock(stock);
+    setShowForm(true);
+
+    // Find material info
+    const matInfo = materialsInfo.find(m => m.material === stock.material);
+    setSelectedMaterialInfo(matInfo);
+
+    setFormData({
+      date: stock.date.split('T')[0],
+      partyName: stock.partyName,
+      dia: stock.dia.toString(),
+      material: stock.material,
+      quantity: stock.quantity.toString(),
+      tcReport: stock.tcReport || '',
+      partName: stock.partName,
+      heatNo: stock.heatNo || ''
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`${API_URL}/incoming-stock`, {
+      const payload = {
         ...formData,
         dia: parseFloat(formData.dia),
         quantity: parseFloat(formData.quantity)
-      });
+      };
 
-      alert('✅ Stock added successfully!');
+      if (editingStock) {
+        // Update existing stock
+        await axios.put(`${API_URL}/incoming-stock/${editingStock._id}`, payload);
+        alert('✅ Stock updated successfully!');
+      } else {
+        // Create new stock
+        await axios.post(`${API_URL}/incoming-stock`, payload);
+        alert('✅ Stock added successfully!');
+      }
+
       setShowForm(false);
+      setEditingStock(null);
+      setSelectedMaterialInfo(null);
       setFormData({
         date: new Date().toISOString().split('T')[0],
         partyName: '',
         dia: '',
         material: '',
-        colorCode: '',
         quantity: '',
         tcReport: '',
         partName: '',
         heatNo: ''
       });
       fetchStocks();
-      fetchMonthlyStats();
+      fetchMaterialSummary();
     } catch (error) {
       alert('❌ Error: ' + (error.response?.data?.message || error.message));
     }
@@ -117,101 +155,245 @@ function IncomingStock() {
         await axios.delete(`${API_URL}/incoming-stock/${id}`);
         alert('✅ Stock deleted successfully!');
         fetchStocks();
-        fetchMonthlyStats();
+        fetchMaterialSummary();
       } catch (error) {
         alert('❌ Error: ' + (error.response?.data?.message || error.message));
       }
     }
   };
 
-  if (loading) {
-    return (
-      <div className="loading-container">
-        <div className="loading">Loading stocks...</div>
-      </div>
-    );
-  }
+  const filteredStocks = stocks.filter(stock =>
+    stock.partName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    stock.partyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    stock.material?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const totalQuantity = filteredStocks.reduce((sum, s) => sum + (s.quantity || 0), 0);
+
+  const getColorStyle = (colorCode) => {
+    const colorMap = {
+      'GREEN': '#10b981',
+      'ORANGE': '#f97316',
+      'PURPLE': '#a855f7',
+      'COFFEE': '#92400e',
+      'GRAY': '#6b7280',
+      'YELLOW': '#eab308',
+      'BLACK': '#1f2937',
+      'WHITE': '#f3f4f6'
+    };
+    return colorMap[colorCode] || '#6b7280';
+  };
+
+  // Group summary by material
+  const materialBreakdown = materialSummary.reduce((acc, item) => {
+    if (!acc[item.material]) {
+      acc[item.material] = {
+        material: item.material,
+        colorCode: item.colorCode,
+        totalQuantity: 0,
+        items: 0
+      };
+    }
+    acc[item.material].totalQuantity += item.totalQuantity;
+    acc[item.material].items += item.count;
+    return acc;
+  }, {});
+
+  const materialData = Object.values(materialBreakdown);
+  const maxQuantity = Math.max(...materialData.map(m => m.totalQuantity), 1);
 
   return (
-    <div className="incoming-stock">
-      <div className="page-header">
-        <div>
-          <h1>📦 Incoming Stock Management</h1>
-          <p className="page-subtitle">Manage raw materials and inventory</p>
+    <div className="incoming-stock-modern">
+      {/* Header Section */}
+      <div className="stock-header">
+        <div className="header-left">
+          <div className="title-group">
+            <h1>📦 Incoming Stock</h1>
+            <p className="subtitle">Manage your raw materials inventory</p>
+          </div>
         </div>
-        <button 
-          className="btn-primary" 
-          onClick={() => setShowForm(!showForm)}
+        <button
+          className={`add-btn ${showForm ? 'cancel' : ''}`}
+          onClick={() => {
+            setShowForm(!showForm);
+            setEditingStock(null);
+            setSelectedMaterialInfo(null);
+            setFormData({
+              date: new Date().toISOString().split('T')[0],
+              partyName: '',
+              dia: '',
+              material: '',
+              quantity: '',
+              tcReport: '',
+              partName: '',
+              heatNo: ''
+            });
+          }}
         >
-          {showForm ? '✖ Cancel' : '+ Add New Stock'}
+          {showForm ? (
+            <>
+              <span>✖</span>
+              <span>Cancel</span>
+            </>
+          ) : (
+            <>
+              <span>+</span>
+              <span>Add Stock</span>
+            </>
+          )}
         </button>
       </div>
 
-      {/* Month Filter */}
-      <div className="filter-container">
-        <div className="filter-group">
-          <label>📅 Filter by Month:</label>
-          <select 
-            value={selectedMonth} 
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            className="month-select"
-          >
-            {months.map(month => (
-              <option key={month.value} value={month.value}>
-                {month.label}
-              </option>
-            ))}
-          </select>
-          
-          <select 
-            value={selectedYear} 
-            onChange={(e) => setSelectedYear(e.target.value)}
-            className="year-select"
-          >
-            {years.map(year => (
-              <option key={year} value={year}>
-                {year}
-              </option>
-            ))}
-          </select>
+      {/* Material Breakdown Chart */}
+      <div className="material-breakdown-section">
+        <h2>📊 Material Stock Breakdown</h2>
+        <div className="material-chart">
+          {materialData.length === 0 ? (
+            <div className="empty-chart">
+              <p>No materials in stock</p>
+            </div>
+          ) : (
+            materialData.map((mat) => (
+              <div key={mat.material} className="material-bar-item">
+                <div className="material-bar-label">
+                  <div className="material-info-left">
+                    <span
+                      className="material-color-dot"
+                      style={{ backgroundColor: getColorStyle(mat.colorCode) }}
+                    ></span>
+                    <span className="material-name">{mat.material}</span>
+                  </div>
+                  <span className="material-quantity">{mat.totalQuantity.toFixed(0)} kg</span>
+                </div>
+                <div className="material-bar-container">
+                  <div
+                    className="material-bar-fill"
+                    style={{
+                      width: `${(mat.totalQuantity / maxQuantity) * 100}%`,
+                      backgroundColor: getColorStyle(mat.colorCode)
+                    }}
+                  >
+                    <span className="material-bar-percentage">
+                      {((mat.totalQuantity / totalQuantity) * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+                <div className="material-bar-meta">
+                  <span>{mat.items} items</span>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
-      {/* Monthly Statistics Summary */}
-      {monthlyStats.length > 0 && (
-        <div className="monthly-stats-container">
-          <h3>📊 Monthly Statistics</h3>
-          <div className="monthly-stats-grid">
-            {monthlyStats.slice(0, 6).map((stat) => (
-              <div key={`${stat.year}-${stat.month}`} className="monthly-stat-card">
-                <div className="stat-month">{stat.monthName} {stat.year}</div>
-                <div className="stat-details">
-                  <div className="stat-item">
-                    <span>Items:</span>
-                    <strong>{stat.totalItems}</strong>
-                  </div>
-                  <div className="stat-item">
-                    <span>Quantity:</span>
-                    <strong>{stat.totalQuantity} kg</strong>
-                  </div>
-                  <div className="stat-item">
-                    <span>Materials:</span>
-                    <strong>{stat.uniqueMaterials}</strong>
-                  </div>
-                </div>
-              </div>
-            ))}
+      {/* Stats Cards */}
+      <div className="stock-stats">
+        <div className="stat-card-mini">
+          <div className="stat-mini-icon">📊</div>
+          <div className="stat-mini-info">
+            <h3>{filteredStocks.length}</h3>
+            <p>Total Items</p>
           </div>
         </div>
-      )}
+        <div className="stat-card-mini">
+          <div className="stat-mini-icon">⚖️</div>
+          <div className="stat-mini-info">
+            <h3>{totalQuantity.toFixed(0)}</h3>
+            <p>Total Quantity (kg)</p>
+          </div>
+        </div>
+        <div className="stat-card-mini">
+          <div className="stat-mini-icon">🏭</div>
+          <div className="stat-mini-info">
+            <h3>{materialData.length}</h3>
+            <p>Materials</p>
+          </div>
+        </div>
+      </div>
 
+      {/* Add/Edit Form */}
       {showForm && (
-        <div className="form-container">
-          <h2>📝 Add New Incoming Stock</h2>
-          <form onSubmit={handleSubmit}>
-            <div className="form-grid">
-              <div className="form-group">
-                <label>Date *</label>
+        <div className="form-card">
+          <div className="form-card-header">
+            <h2>{editingStock ? '✏️ Edit Stock' : '➕ Add New Stock'}</h2>
+            <p>{editingStock ? 'Update stock information' : 'Select material and fill in the details'}</p>
+          </div>
+          <form onSubmit={handleSubmit} className="modern-form">
+            {/* Material Selection */}
+            <div className="material-selection-section">
+              <label>Select Material by Color *</label>
+              <button
+                type="button"
+                className="material-selector-btn"
+                onClick={() => setShowMaterialSelector(!showMaterialSelector)}
+              >
+                {selectedMaterialInfo ? (
+                  <div className="selected-material-display">
+                    <div
+                      className="material-color-dot"
+                      style={{ backgroundColor: selectedMaterialInfo.colorHex }}
+                    ></div>
+                    <span>{selectedMaterialInfo.material}</span>
+                    <span className="material-color-name">({selectedMaterialInfo.color})</span>
+                  </div>
+                ) : (
+                  <span>Click to select material</span>
+                )}
+              </button>
+
+              {showMaterialSelector && (
+                <div className="material-selector-dropdown">
+                  <div className="material-grid">
+                    {materialsInfo.map((mat) => (
+                      <div
+                        key={mat.material}
+                        className="material-option"
+                        onClick={() => handleMaterialClick(mat)}
+                      >
+                        <div
+                          className="material-color-box"
+                          style={{ backgroundColor: mat.colorHex }}
+                        >
+                          <span className="material-color-label">{mat.color}</span>
+                        </div>
+                        <div className="material-info">
+                          <strong>{mat.material}</strong>
+                          <span className="dia-info">
+                            Dia: {mat.diameters.join(', ')}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {selectedMaterialInfo && (
+                <div className="selected-material-details">
+                  <h4>✅ Available Diameters for {selectedMaterialInfo.material}</h4>
+                  <div className="diameter-chips">
+                    {selectedMaterialInfo.diameters.map((dia) => (
+                      <span
+                        key={dia}
+                        className={`diameter-chip ${formData.dia == dia ? 'selected' : ''}`}
+                        onClick={() => setFormData({ ...formData, dia: dia.toString() })}
+                        style={{
+                          borderColor: formData.dia == dia ? selectedMaterialInfo.colorHex : '#e2e8f0',
+                          backgroundColor: formData.dia == dia ? selectedMaterialInfo.colorHex + '20' : 'white'
+                        }}
+                      >
+                        {dia} mm
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="form-grid-modern">
+              <div className="input-group">
+                <label>Date</label>
                 <input
                   type="date"
                   name="date"
@@ -221,188 +403,189 @@ function IncomingStock() {
                 />
               </div>
 
-              <div className="form-group">
-                <label>Party Name *</label>
+              <div className="input-group">
+                <label>Party Name</label>
                 <input
                   type="text"
                   name="partyName"
                   value={formData.partyName}
                   onChange={handleInputChange}
-                  placeholder="e.g., Kratti Forging"
+                  placeholder="Enter party name"
                   required
                 />
               </div>
 
-              <div className="form-group">
-                <label>Diameter (mm) *</label>
+              <div className="input-group">
+                <label>Diameter (mm)</label>
                 <input
                   type="number"
                   step="0.01"
                   name="dia"
                   value={formData.dia}
                   onChange={handleInputChange}
-                  placeholder="e.g., 10"
+                  placeholder="Select from chips above"
                   required
-                  min="0"
+                  disabled={!selectedMaterialInfo}
                 />
               </div>
 
-              <div className="form-group">
-                <label>Material *</label>
-                <input
-                  type="text"
-                  name="material"
-                  value={formData.material}
-                  onChange={handleInputChange}
-                  placeholder="e.g., SAE-1018"
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Color Code *</label>
-                <input
-                  type="text"
-                  name="colorCode"
-                  value={formData.colorCode}
-                  onChange={handleInputChange}
-                  placeholder="e.g., BLACK or #000000"
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Quantity (kg) *</label>
+              <div className="input-group">
+                <label>Quantity (kg)</label>
                 <input
                   type="number"
                   step="0.001"
                   name="quantity"
                   value={formData.quantity}
                   onChange={handleInputChange}
-                  placeholder="e.g., 10150"
+                  placeholder="10150"
                   required
                   min="0"
                 />
               </div>
 
-              <div className="form-group">
+              <div className="input-group">
                 <label>TC Report</label>
                 <input
                   type="text"
                   name="tcReport"
                   value={formData.tcReport}
                   onChange={handleInputChange}
-                  placeholder="e.g., TC-2025-001"
+                  placeholder="TC-2025-001"
                 />
               </div>
 
-              <div className="form-group">
-                <label>Part Name *</label>
+              <div className="input-group">
+                <label>Part Name</label>
                 <input
                   type="text"
                   name="partName"
                   value={formData.partName}
                   onChange={handleInputChange}
-                  placeholder="e.g., Chain Link"
+                  placeholder="Chain Link"
                   required
                 />
               </div>
 
-              <div className="form-group">
+              <div className="input-group">
                 <label>Heat Number</label>
                 <input
                   type="text"
                   name="heatNo"
                   value={formData.heatNo}
                   onChange={handleInputChange}
-                  placeholder="e.g., HT-2025-001"
+                  placeholder="HT-2025-001"
                 />
               </div>
             </div>
 
-            <button type="submit" className="btn-submit">
-              ✅ Add Stock
+            <button type="submit" className="submit-btn-modern" disabled={!selectedMaterialInfo}>
+              <span>{editingStock ? '💾' : '✅'}</span>
+              <span>{editingStock ? 'Update Stock' : 'Add to Inventory'}</span>
             </button>
           </form>
         </div>
       )}
 
-      <div className="stock-table-container">
-        <div className="table-header">
-          <h2>📋 Stock Inventory</h2>
-          <div className="table-stats">
-            <span className="stat-badge">Total: {stocks.length}</span>
-            <span className="stat-badge success">
-              Total Quantity: {stocks.reduce((sum, s) => sum + (s.quantity || 0), 0).toFixed(2)} kg
-            </span>
-          </div>
-        </div>
-
-        <div className="table-wrapper">
-          <table className="stock-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Party Name</th>
-                <th>Dia (mm)</th>
-                <th>Material</th>
-                <th>Color Code</th>
-                <th>Quantity (kg)</th>
-                <th>Part Name</th>
-                <th>TC Report</th>
-                <th>Heat No</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {stocks.length === 0 ? (
-                <tr>
-                  <td colSpan="10" className="no-data">
-                    📦 No stock records found. Add your first stock!
-                  </td>
-                </tr>
-              ) : (
-                stocks.map((stock) => (
-                  <tr key={stock._id}>
-                    <td>{new Date(stock.date).toLocaleDateString()}</td>
-                    <td className="font-bold">{stock.partyName}</td>
-                    <td className="dia-cell">{stock.dia}</td>
-                    <td>
-                      <span className="material-badge">{stock.material}</span>
-                    </td>
-                    <td>
-                      <span 
-                        className="color-badge" 
-                        style={{
-                          backgroundColor: stock.colorCode.startsWith('#') 
-                            ? stock.colorCode 
-                            : stock.colorCode.toLowerCase(),
-                          color: 'white'
-                        }}
-                      >
-                        {stock.colorCode}
-                      </span>
-                    </td>
-                    <td className="quantity-cell">{stock.quantity?.toFixed(2)}</td>
-                    <td>{stock.partName}</td>
-                    <td>{stock.tcReport || '-'}</td>
-                    <td>{stock.heatNo || '-'}</td>
-                    <td>
-                      <button 
-                        className="btn-delete"
-                        onClick={() => handleDelete(stock._id)}
-                        title="Delete"
-                      >
-                        🗑️
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+      {/* Search and Filter */}
+      <div className="search-section">
+        <div className="search-box">
+          <span className="search-icon">🔍</span>
+          <input
+            type="text"
+            placeholder="Search by part name, party, or material..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
       </div>
+
+      {/* Stock Grid */}
+      {loading ? (
+        <div className="loading-state">
+          <div className="loading-spinner"></div>
+          <p>Loading stocks...</p>
+        </div>
+      ) : (
+        <div className="stock-grid">
+          {filteredStocks.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">📦</div>
+              <h3>No stocks found</h3>
+              <p>Add your first stock item to get started</p>
+            </div>
+          ) : (
+            filteredStocks.map((stock) => (
+              <div key={stock._id} className="stock-card">
+                <div className="stock-card-header">
+                  <div
+                    className="stock-badge"
+                    style={{
+                      backgroundColor: getColorStyle(stock.colorCode),
+                      color: 'white'
+                    }}
+                  >
+                    {stock.material}
+                  </div>
+                  <div className="stock-actions">
+                    <button
+                      className="edit-btn-mini"
+                      onClick={() => handleEdit(stock)}
+                      title="Edit"
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      className="delete-btn-mini"
+                      onClick={() => handleDelete(stock._id)}
+                      title="Delete"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+
+                <h3 className="stock-title">{stock.partName}</h3>
+                <p className="stock-party">{stock.partyName}</p>
+
+                <div className="stock-details">
+                  <div className="detail-row">
+                    <span className="detail-label">Diameter:</span>
+                    <span className="detail-value">{stock.dia} mm</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">Quantity:</span>
+                    <span className="detail-value highlight">{stock.quantity?.toFixed(2)} kg</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">Color:</span>
+                    <span
+                      className="color-indicator"
+                      style={{
+                        backgroundColor: getColorStyle(stock.colorCode),
+                        color: 'white'
+                      }}
+                    >
+                      {stock.colorCode}
+                    </span>
+                  </div>
+                  {stock.heatNo && (
+                    <div className="detail-row">
+                      <span className="detail-label">Heat No:</span>
+                      <span className="detail-value">{stock.heatNo}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="stock-footer">
+                  <span className="date-badge">
+                    📅 {new Date(stock.date).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 }

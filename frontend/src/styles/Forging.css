@@ -1,597 +1,497 @@
-.forging-operations {
-  animation: fadeIn 0.6s ease-in;
+.forging-modern {
+  padding: 0;
+  animation: fadeIn 0.5s ease-in;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(30px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* Page Header */
-.page-header {
+/* Header */
+.forging-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 32px;
-  padding: 32px;
-  background: linear-gradient(135deg, #9f7aea 0%, #805ad5 100%);
-  border-radius: 20px;
-  box-shadow: 0 10px 40px rgba(159, 122, 234, 0.3);
 }
 
-.page-header h1 {
-  color: white;
+.forging-header .title-group h1 {
   font-size: 2.5rem;
-  font-weight: 800;
-  text-shadow: 0 2px 20px rgba(0,0,0,0.2);
+  font-weight: 900;
+  color: #2d3748;
+  margin: 0 0 8px 0;
 }
 
-.page-subtitle {
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 1rem;
-  margin-top: 8px;
-}
-
-.btn-primary {
-  background: white;
-  color: var(--primary-color);
-  padding: 14px 28px;
-  border: none;
-  border-radius: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-  transition: all 0.3s ease;
-}
-
-.btn-primary:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 25px rgba(0,0,0,0.3);
-}
-
-/* Month Filter */
-.filter-container {
-  background: white;
-  padding: 24px;
-  border-radius: 16px;
+/* Forging Stats Grid */
+.forging-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
   margin-bottom: 32px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
 }
 
-.filter-group {
+.forging-stat-card {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
   display: flex;
   align-items: center;
   gap: 16px;
-  flex-wrap: wrap;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
 }
 
-.filter-group label {
+.forging-stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+}
+
+.forging-stat-card.ok {
+  border-color: #48bb78;
+}
+
+.forging-stat-card.scrap {
+  border-color: #f56565;
+}
+
+.forging-stat-card.rejection {
+  border-color: #ed8936;
+}
+
+.forging-stat-card.efficiency {
+  border-color: #9f7aea;
+}
+
+.stat-icon-forging {
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.forging-stat-card.ok .stat-icon-forging {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+}
+
+.forging-stat-card.scrap .stat-icon-forging {
+  background: linear-gradient(135deg, #fed7d7, #fbb6ce);
+}
+
+.forging-stat-card.rejection .stat-icon-forging {
+  background: linear-gradient(135deg, #fed7aa, #fdba74);
+}
+
+.forging-stat-card.efficiency .stat-icon-forging {
+  background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+}
+
+.stat-info-forging h3 {
+  font-size: 2rem;
+  font-weight: 900;
+  margin: 0;
+  color: #2d3748;
+}
+
+.stat-info-forging p {
+  font-size: 0.85rem;
+  color: #718096;
+  margin: 0;
+  font-weight: 600;
+}
+
+/* Form Card Forging */
+.form-card-forging {
+  background: white;
+  border-radius: 20px;
+  padding: 32px;
+  margin-bottom: 32px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+  border: 2px solid #9f7aea;
+}
+
+.cutting-select-section {
+  margin-bottom: 24px;
+}
+
+.cutting-select-section label {
+  display: block;
+  font-size: 1rem;
   font-weight: 700;
-  color: var(--text-primary);
-  font-size: 1.05rem;
+  color: #4a5568;
+  margin-bottom: 12px;
 }
 
-.month-select,
-.year-select {
-  padding: 12px 20px;
-  border: 2px solid var(--border-color);
+.selected-cutting-card {
+  margin-top: 20px;
+  padding: 20px;
+  background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+  border-radius: 12px;
+}
+
+.selected-cutting-card h4 {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #2d3748;
+  margin: 0 0 16px 0;
+}
+
+.cutting-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.form-grid-forging {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.input-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.input-group textarea {
+  padding: 14px 16px;
+  border: 2px solid #e2e8f0;
   border-radius: 10px;
   font-size: 1rem;
-  font-weight: 600;
-  background: white;
-  cursor: pointer;
+  font-weight: 500;
   transition: all 0.3s ease;
+  font-family: inherit;
+  resize: vertical;
 }
 
-.month-select:focus,
-.year-select:focus {
+.input-group textarea:focus {
   outline: none;
   border-color: #9f7aea;
   box-shadow: 0 0 0 3px rgba(159, 122, 234, 0.1);
 }
 
-/* Monthly Stats */
-.monthly-stats-container {
-  background: white;
-  padding: 32px;
-  border-radius: 20px;
-  margin-bottom: 32px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
-}
-
-.monthly-stats-container h3 {
-  margin-bottom: 24px;
-  color: var(--text-primary);
-  font-size: 1.5rem;
-  font-weight: 800;
-}
-
-.monthly-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
-}
-
-.monthly-stat-card.forging {
-  background: linear-gradient(135deg, #9f7aea 0%, #805ad5 100%);
-  padding: 24px;
-  border-radius: 16px;
+.submit-btn-forging {
+  width: 100%;
+  background: linear-gradient(135deg, #9f7aea, #805ad5);
   color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 16px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
   transition: all 0.3s ease;
 }
 
-.monthly-stat-card.forging:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 12px 30px rgba(159, 122, 234, 0.3);
+.submit-btn-forging:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(159, 122, 234, 0.4);
 }
 
-.stat-month {
-  font-size: 1.25rem;
-  font-weight: 800;
-  margin-bottom: 16px;
-  text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+.submit-btn-forging:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
-.stat-details {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+/* Forging Records */
+.forging-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 24px;
 }
 
-.stat-item {
+.forging-record-card {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.forging-record-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.1);
+  border-color: #9f7aea;
+}
+
+.forging-card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.2);
-}
-
-.stat-item:last-child {
-  border-bottom: none;
-}
-
-.stat-item span {
-  font-size: 0.9rem;
-  opacity: 0.9;
-}
-
-.stat-item strong {
-  font-size: 1.1rem;
-  font-weight: 800;
-}
-
-/* Form Container */
-.form-container {
-  background: white;
-  padding: 40px;
-  border-radius: 24px;
-  margin-bottom: 40px;
-  border: 2px solid rgba(159, 122, 234, 0.2);
-  box-shadow: 0 10px 40px rgba(159, 122, 234, 0.15);
-}
-
-.form-container h2 {
-  margin-bottom: 28px;
-  color: var(--text-primary);
-  font-size: 1.75rem;
-  font-weight: 800;
-  background: linear-gradient(135deg, #9f7aea 0%, #805ad5 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-/* Cutting Selection */
-.cutting-selection-section {
-  background: linear-gradient(135deg, #e0e7ff 0%, #fce7f3 100%);
-  padding: 32px;
-  border-radius: 20px;
-  margin-bottom: 32px;
-  border: 3px solid #9f7aea;
-  box-shadow: 0 8px 24px rgba(159, 122, 234, 0.15);
-}
-
-.cutting-selection-section h3 {
-  color: var(--text-primary);
   margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #f7fafc;
+}
+
+.forging-card-header h3 {
   font-size: 1.4rem;
   font-weight: 800;
+  color: #2d3748;
+  margin: 0;
 }
 
-.cutting-select {
-  width: 100%;
-  padding: 16px 20px;
-  border: 3px solid #e0e7ff;
+.efficiency-tag {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: white;
+}
+
+.efficiency-tag.excellent {
+  background: linear-gradient(135deg, #48bb78, #38a169);
+}
+
+.efficiency-tag.good {
+  background: linear-gradient(135deg, #4299e1, #3182ce);
+}
+
+.efficiency-tag.average {
+  background: linear-gradient(135deg, #ed8936, #dd6b20);
+}
+
+.efficiency-tag.poor {
+  background: linear-gradient(135deg, #f56565, #e53e3e);
+}
+
+/* Forging Metrics */
+.forging-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.metric-box {
+  padding: 16px;
   border-radius: 12px;
-  font-size: 1.05rem;
-  font-weight: 600;
-  background: white;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.3s ease;
+}
+
+.metric-box:hover {
+  transform: scale(1.05);
+}
+
+.ok-box {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+}
+
+.scrap-box {
+  background: linear-gradient(135deg, #fed7d7, #fbb6ce);
+}
+
+.rejection-box {
+  background: linear-gradient(135deg, #fed7aa, #fdba74);
+}
+
+.babari-box {
+  background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+}
+
+.metric-icon {
+  font-size: 1.75rem;
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.1));
+}
+
+.metric-box h4 {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: #2d3748;
+  margin: 0;
+}
+
+.metric-box p {
+  font-size: 0.75rem;
+  color: #4a5568;
+  margin: 0;
+  font-weight: 700;
+}
+
+.forging-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 16px;
+  border-top: 2px solid #f7fafc;
+}
+
+.delete-btn-forging {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #fed7d7, #fbb6ce);
+  border: none;
+  border-radius: 10px;
+  font-size: 1.2rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(159, 122, 234, 0.1);
 }
 
-.cutting-select:focus {
-  outline: none;
+.delete-btn-forging:hover {
+  background: linear-gradient(135deg, #f56565, #e53e3e);
+  transform: scale(1.1) rotate(5deg);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .forging-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .forging-stats-grid,
+  .forging-cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .forging-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .form-grid-forging {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Common Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+/* Forging Filter */
+.month-filter-section.forging-filter {
   border-color: #9f7aea;
-  box-shadow: 0 0 0 4px rgba(159, 122, 234, 0.15);
 }
 
-/* Selected Cutting Info */
-.selected-cutting-info {
-  margin-top: 24px;
-  background: white;
-  padding: 28px;
-  border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(72, 187, 120, 0.15);
-  border: 2px solid #c6f6d5;
-  animation: expandIn 0.4s ease-out;
+.period-badge.forging {
+  background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+  color: #805ad5;
 }
 
-@keyframes expandIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+/* Monthly Card Forging */
+.monthly-card.forging {
+  background: linear-gradient(135deg, #9f7aea, #805ad5);
 }
 
-.selected-cutting-info h4 {
-  color: var(--success-color);
-  margin-bottom: 20px;
-  font-size: 1.25rem;
-  font-weight: 800;
+/* Forging Qty Stat Card */
+.forging-stat-card.forging-qty {
+  border-color: #4299e1;
 }
 
-.cutting-details-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
+.forging-stat-card.forging-qty .stat-icon-forging {
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
 }
 
-.detail-item {
+.forging-stat-card.ring {
+  border-color: #ec4899;
+}
+
+.forging-stat-card.ring .stat-icon-forging {
+  background: linear-gradient(135deg, #fce7f3, #fbcfe8);
+}
+
+/* Header Left Info */
+.header-left-info {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 16px;
-  background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
-  border-radius: 12px;
-  transition: all 0.3s ease;
+  gap: 6px;
 }
 
-.detail-item:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
-}
-
-.detail-item span {
-  color: var(--text-secondary);
-  font-size: 0.875rem;
+.material-info {
+  font-size: 0.85rem;
+  color: #718096;
   font-weight: 600;
 }
 
-.detail-item strong {
-  color: var(--text-primary);
-  font-size: 1.25rem;
-  font-weight: 800;
+/* Metric Box Qty and Ring */
+.metric-box.qty-box {
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
 }
 
-/* Form Grid */
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 24px;
+.metric-box.ring-box {
+  background: linear-gradient(135deg, #fce7f3, #fbcfe8);
+}
+
+/* Forging Preview */
+.forging-preview {
+  background: linear-gradient(135deg, #e0e7ff, #f3e8ff);
+  border-radius: 16px;
+  padding: 24px;
   margin-bottom: 24px;
+  border: 2px solid #9f7aea;
 }
 
-.form-group {
-  display: flex;
-  flex-direction: column;
-}
-
-.form-group.full-width {
-  grid-column: 1 / -1;
-}
-
-.form-group label {
-  font-weight: 700;
-  margin-bottom: 10px;
-  color: var(--text-primary);
-  font-size: 0.95rem;
-}
-
-.form-group input,
-.form-group textarea {
-  padding: 14px 18px;
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
-  font-size: 1rem;
-  transition: all 0.3s ease;
-  background: white;
-  font-family: inherit;
-  font-weight: 500;
-}
-
-.form-group input:focus,
-.form-group textarea:focus {
-  outline: none;
-  border-color: #9f7aea;
-  box-shadow: 0 0 0 4px rgba(159, 122, 234, 0.15);
-}
-
-.form-group textarea {
-  resize: vertical;
-}
-
-.help-text {
-  color: var(--info-color);
-  font-size: 0.875rem;
-  margin-top: 6px;
-  font-weight: 600;
-}
-
-/* Calculation Preview */
-.calculation-preview {
-  background: linear-gradient(135deg, #fff5f7 0%, #fed7e2 100%);
-  padding: 28px;
-  border-radius: 16px;
-  margin: 24px 0;
-  border: 2px solid #f687b3;
-}
-
-.calculation-preview h3 {
-  color: var(--text-primary);
-  margin-bottom: 20px;
-  font-size: 1.25rem;
+.forging-preview h4 {
+  font-size: 1.2rem;
   font-weight: 800;
+  color: #2d3748;
+  margin: 0 0 20px 0;
 }
 
-.preview-grid {
+.preview-grid-forging {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 16px;
 }
 
-.preview-item {
+.preview-item-forging {
   background: white;
-  padding: 20px;
+  padding: 16px;
   border-radius: 12px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
-.preview-item span {
-  color: var(--text-secondary);
-  font-size: 0.9rem;
+.preview-item-forging.ok {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  border: 2px solid #48bb78;
+}
+
+.preview-item-forging span {
+  font-size: 0.85rem;
+  color: #718096;
   font-weight: 600;
 }
 
-.preview-item strong {
-  color: #9f7aea;
-  font-size: 1.5rem;
+.preview-item-forging strong {
+  font-size: 1.3rem;
+  color: #2d3748;
   font-weight: 900;
 }
 
-/* Submit Button */
-.btn-submit {
-  background: linear-gradient(135deg, #9f7aea 0%, #805ad5 100%);
-  color: white;
-  width: 100%;
-  padding: 18px;
-  font-size: 1.2rem;
-  border: none;
-  border-radius: 14px;
-  font-weight: 800;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  margin-top: 24px;
-  box-shadow: 0 8px 24px rgba(159, 122, 234, 0.3);
-}
-
-.btn-submit:hover:not(:disabled) {
-  background: linear-gradient(135deg, #805ad5 0%, #6b46c1 100%);
-  transform: translateY(-3px);
-  box-shadow: 0 12px 32px rgba(159, 122, 234, 0.4);
-}
-
-.btn-submit:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Table Container */
-.table-container {
-  background: white;
-  padding: 32px;
-  border-radius: 20px;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.08);
-}
-
-.table-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-}
-
-.table-header h2 {
-  color: var(--text-primary);
-  font-size: 1.75rem;
-  font-weight: 800;
-}
-
-.table-stats {
-  display: flex;
-  gap: 12px;
-}
-
-.stat-badge {
-  padding: 8px 16px;
-  border-radius: 20px;
-  background: linear-gradient(135deg, #e0e7ff, #f3e8ff);
-  color: var(--primary-color);
-  font-weight: 700;
-  font-size: 0.9rem;
-}
-
-.stat-badge.success {
-  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
-  color: var(--success-color);
-}
-
-.stat-badge.danger {
-  background: linear-gradient(135deg, #fed7d7, #fbb6ce);
-  color: var(--danger-color);
-}
-
-/* Table */
-.table-wrapper {
-  overflow-x: auto;
-  border-radius: 12px;
-}
-
-.forging-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  min-width: 1200px;
-}
-
-.forging-table thead {
-  background: linear-gradient(135deg, #9f7aea 0%, #805ad5 100%);
-  color: white;
-}
-
-.forging-table th {
-  padding: 18px 16px;
-  text-align: left;
-  font-weight: 700;
-  font-size: 0.95rem;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-}
-
-.forging-table tbody tr {
-  border-bottom: 1px solid #e2e8f0;
-  transition: all 0.3s ease;
-}
-
-.forging-table tbody tr:hover {
-  background: linear-gradient(135deg, rgba(159, 122, 234, 0.05), rgba(128, 90, 213, 0.05));
-  transform: scale(1.01);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-}
-
-.forging-table td {
-  padding: 18px 16px;
-  color: var(--text-primary);
-  font-size: 0.95rem;
-  font-weight: 500;
-}
-
-.font-bold {
-  font-weight: 700;
-}
-
-.ok-cell {
-  color: var(--success-color);
-  font-weight: 800;
-  font-size: 1.1rem;
-}
-
-.scrap-cell {
-  color: var(--danger-color);
-  font-weight: 800;
-}
-
-.rejection-cell {
-  color: var(--warning-color);
-  font-weight: 800;
-}
-
-/* Efficiency Badge */
-.efficiency-badge {
-  display: inline-block;
-  padding: 6px 12px;
-  border-radius: 12px;
-  font-weight: 800;
-  font-size: 0.9rem;
-}
-
-.efficiency-badge.excellent {
-  background: linear-gradient(135deg, #48bb78, #38a169);
-  color: white;
-}
-
-.efficiency-badge.good {
-  background: linear-gradient(135deg, #4299e1, #3182ce);
-  color: white;
-}
-
-.efficiency-badge.average {
-  background: linear-gradient(135deg, #ed8936, #dd6b20);
-  color: white;
-}
-
-.efficiency-badge.poor {
-  background: linear-gradient(135deg, #f56565, #e53e3e);
-  color: white;
-}
-
-/* Delete Button */
-.btn-delete {
-  background: linear-gradient(135deg, #f56565, #e53e3e);
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 1.2rem;
-  transition: all 0.3s ease;
-}
-
-.btn-delete:hover {
-  transform: scale(1.1);
-  box-shadow: 0 4px 15px rgba(245, 101, 101, 0.4);
-}
-
-.no-data {
-  text-align: center;
-  padding: 40px !important;
-  color: var(--text-secondary);
-  font-size: 1.1rem;
-}
-
-.text-success {
-  color: var(--success-color);
-}
-
-.text-danger {
-  color: var(--danger-color);
-}
-
-.text-warning {
-  color: var(--warning-color);
+.highlight-purple {
+  color: #9f7aea !important;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
-  .form-grid {
+  .preview-grid-forging {
     grid-template-columns: 1fr;
   }
-  
-  .preview-grid,
-  .cutting-details-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .page-header {
-    flex-direction: column;
-    gap: 16px;
-  }
-  
-  .table-stats {
-    flex-direction: column;
-  }
-  
-  .monthly-stats-grid {
-    grid-template-columns: 1fr;
+
+  .forging-metrics {
+    grid-template-columns: repeat(2, 1fr);
   }
 }

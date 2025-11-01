@@ -63,7 +63,7 @@ export const createForging = async (req, res) => {
     const { cuttingId } = req.body;
 
     // Verify cutting exists
-    const cutting = await Cutting.findById(cuttingId);
+    const cutting = await Cutting.findById(cuttingId).populate('stockId');
     if (!cutting) {
       return res.status(404).json({
         success: false,
@@ -74,7 +74,7 @@ export const createForging = async (req, res) => {
     // Auto-fill data from cutting
     req.body.partName = cutting.partName;
     req.body.dia = cutting.dia;
-    req.body.finalCutWeight = cutting.calculations.finalCutWeight;
+    req.body.material = cutting.material;
     req.body.totalPiecesFromCutting = cutting.calculations.totalPieces;
 
     // Create forging record
@@ -190,25 +190,9 @@ export const getForgingByMonth = async (req, res) => {
     })
     .sort({ date: -1 });
 
-    // Calculate month totals
-    const totalOkPieces = forgings.reduce((sum, f) => sum + (f.forgingResults?.finalOkPieces || 0), 0);
-    const totalScrap = forgings.reduce((sum, f) => sum + (f.forgingResults?.scrapPieces || 0), 0);
-    const totalRejection = forgings.reduce((sum, f) => sum + (f.forgingResults?.rejectionPieces || 0), 0);
-    const totalBabari = forgings.reduce((sum, f) => sum + (f.forgingResults?.totalBabari || 0), 0);
-
     res.status(200).json({
       success: true,
-      month: `${year}-${String(month).padStart(2, '0')}`,
       count: forgings.length,
-      summary: {
-        totalOkPieces,
-        totalScrap,
-        totalRejection,
-        totalBabari: parseFloat(totalBabari.toFixed(3)),
-        avgEfficiency: forgings.length > 0 
-          ? parseFloat((forgings.reduce((sum, f) => sum + f.forgingResults.efficiency, 0) / forgings.length).toFixed(2))
-          : 0
-      },
       data: forgings
     });
   } catch (error) {
@@ -232,10 +216,12 @@ export const getMonthlyForgingStats = async (req, res) => {
             month: { $month: '$date' }
           },
           totalOperations: { $sum: 1 },
+          totalForgingQty: { $sum: '$forgingQty' },
           totalOkPieces: { $sum: '$forgingResults.finalOkPieces' },
           totalScrap: { $sum: '$forgingResults.scrapPieces' },
-          totalRejection: { $sum: '$forgingResults.rejectionPieces' },
+          totalRejection: { $sum: '$rejectionQty' },
           totalBabari: { $sum: '$forgingResults.totalBabari' },
+          totalRingWeight: { $sum: '$forgingResults.totalRingWeight' },
           avgEfficiency: { $avg: '$forgingResults.efficiency' }
         }
       },
@@ -255,10 +241,12 @@ export const getMonthlyForgingStats = async (req, res) => {
             ]
           },
           totalOperations: 1,
+          totalForgingQty: 1,
           totalOkPieces: 1,
           totalScrap: 1,
           totalRejection: 1,
           totalBabari: { $round: ['$totalBabari', 3] },
+          totalRingWeight: { $round: ['$totalRingWeight', 3] },
           avgEfficiency: { $round: ['$avgEfficiency', 2] }
         }
       }
@@ -276,4 +264,14 @@ export const getMonthlyForgingStats = async (req, res) => {
       error: error.message
     });
   }
+};
+
+export default {
+  getAllForging,
+  getForgingById,
+  createForging,
+  updateForging,
+  deleteForging,
+  getForgingByMonth,
+  getMonthlyForgingStats
 };

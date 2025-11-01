@@ -5,21 +5,23 @@ import {
   createStock,
   updateStock,
   deleteStock,
-  searchStock,
   getStockByMonth,
-  getMonthlyStats
+  getMonthlyStockStats,
+  getMaterialsInfo,
+  getStockByMaterial,
+  getStockByColor,
+  getStockSummary
 } from '../controllers/incomingStock.controller.js';
 
 const router = express.Router();
 
-// Monthly stats route
-router.get('/stats/monthly', getMonthlyStats);
-
-// Month filter route
+// Special routes (must come before /:id)
+router.get('/stats/monthly', getMonthlyStockStats);
+router.get('/materials', getMaterialsInfo);
+router.get('/summary', getStockSummary);
 router.get('/month/:year/:month', getStockByMonth);
-
-// Search route
-router.get('/search', searchStock);
+router.get('/material/:material', getStockByMaterial);
+router.get('/color/:color', getStockByColor);
 
 // Main routes
 router.route('/')

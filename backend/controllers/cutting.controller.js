@@ -1,6 +1,65 @@
 import Cutting from '../models/Cutting.js';
 import IncomingStock from '../models/IncomingStock.js';
 
+// @desc    Calculate cutting before saving
+// @route   POST /api/cutting/calculate
+export const calculateCutting = async (req, res) => {
+  try {
+    const {
+      cuttingType,
+      targetPieces,
+      cuttingWeightMin,
+      cuttingWeightMax,
+      totalCutWeight,
+      endPieceWeight,
+      bhukiWeight
+    } = req.body;
+
+    const avgCutWeight = (cuttingWeightMin + cuttingWeightMax) / 2;
+
+    // Steel used for cutting pieces
+    const steelUsedForPieces = Number((targetPieces * totalCutWeight).toFixed(3));
+
+    // End piece used
+    const endPieceUsed = Number((targetPieces * endPieceWeight).toFixed(3));
+
+    // Scrap/Bhuki used (only for CIRCULAR)
+    let scrapUsed = 0;
+    let totalBhuki = 0;
+    if (cuttingType === 'CIRCULAR') {
+      scrapUsed = Number((targetPieces * bhukiWeight).toFixed(3));
+      totalBhuki = scrapUsed;
+    }
+
+    // Total steel used
+    const totalSteelUsed = Number((steelUsedForPieces + endPieceUsed + scrapUsed).toFixed(3));
+
+    // Total waste
+    const totalWaste = Number((endPieceUsed + scrapUsed).toFixed(3));
+
+    res.status(200).json({
+      success: true,
+      data: {
+        targetPieces,
+        steelUsedForPieces,
+        endPieceUsed,
+        scrapUsed,
+        totalSteelUsed,
+        totalPieces: targetPieces,
+        totalWaste,
+        totalBhuki,
+        avgCutWeight: Number(avgCutWeight.toFixed(3))
+      }
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: 'Error calculating cutting',
+      error: error.message
+    });
+  }
+};
+
 // @desc    Get all cutting records
 // @route   GET /api/cutting
 export const getAllCutting = async (req, res) => {
@@ -23,95 +82,24 @@ export const getAllCutting = async (req, res) => {
   }
 };
 
-// @desc    Get single cutting record
-// @route   GET /api/cutting/:id
-export const getCuttingById = async (req, res) => {
+// @desc    Get cutting by type
+// @route   GET /api/cutting/type/:type
+export const getCuttingByType = async (req, res) => {
   try {
-    const cutting = await Cutting.findById(req.params.id).populate('stockId');
-
-    if (!cutting) {
-      return res.status(404).json({
-        success: false,
-        message: 'Cutting record not found'
-      });
-    }
+    const { type } = req.params;
+    const cuttings = await Cutting.find({ cuttingType: type.toUpperCase() })
+      .populate('stockId')
+      .sort({ date: -1 });
 
     res.status(200).json({
       success: true,
-      data: cutting
+      count: cuttings.length,
+      data: cuttings
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Error fetching cutting record',
-      error: error.message
-    });
-  }
-};
-
-// @desc    Calculate cutting values
-// @route   POST /api/cutting/calculate
-export const calculateCutting = async (req, res) => {
-  try {
-    const {
-      cuttingType,
-      dia,
-      cuttingWeightMin,
-      cuttingWeightMax,
-      weightVariance,
-      endPieceWeight,
-      totalStockWeightUsed
-    } = req.body;
-
-    // 1. Average cutting weight
-    const avgCuttingWeight = (parseFloat(cuttingWeightMin) + parseFloat(cuttingWeightMax)) / 2;
-
-    // 2. Calculate blend weight (BHUKI - only for CIRCULAR)
-    let blendWeight = 0;
-    if (cuttingType === 'CIRCULAR') {
-      blendWeight = parseFloat(dia) * parseFloat(dia) * 2 * 0.00000618;
-    }
-
-    // 3. Final cut weight per piece
-    const finalCutWeight = avgCuttingWeight 
-      + parseFloat(weightVariance) 
-      + parseFloat(endPieceWeight) 
-      + blendWeight;
-
-    // 4. Total number of pieces
-    const totalPieces = Math.floor(parseFloat(totalStockWeightUsed) / finalCutWeight);
-
-    // 5. Total bhuki (only for CIRCULAR)
-    const totalBhuki = cuttingType === 'CIRCULAR' ? totalPieces * blendWeight : 0;
-
-    // 6. Weight used for cutting
-    const weightUsedForCutting = totalPieces * finalCutWeight;
-
-    // 7. ACTUAL waste (leftover material only)
-    const totalWaste = parseFloat(totalStockWeightUsed) - weightUsedForCutting;
-
-    res.status(200).json({
-      success: true,
-      data: {
-        avgCuttingWeight: parseFloat(avgCuttingWeight.toFixed(6)),
-        blendWeight: parseFloat(blendWeight.toFixed(6)),
-        finalCutWeight: parseFloat(finalCutWeight.toFixed(6)),
-        totalPieces,
-        totalBhuki: parseFloat(totalBhuki.toFixed(6)),
-        weightUsedForCutting: parseFloat(weightUsedForCutting.toFixed(3)),
-        totalWaste: parseFloat(totalWaste.toFixed(6)),
-        breakdown: {
-          totalStockUsed: parseFloat(totalStockWeightUsed),
-          usedForCutting: parseFloat(weightUsedForCutting.toFixed(3)),
-          waste: parseFloat(totalWaste.toFixed(6)),
-          bhuki: parseFloat(totalBhuki.toFixed(6))
-        }
-      }
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: 'Error calculating cutting values',
+      message: 'Error fetching cutting records',
       error: error.message
     });
   }
@@ -121,9 +109,9 @@ export const calculateCutting = async (req, res) => {
 // @route   POST /api/cutting
 export const createCutting = async (req, res) => {
   try {
-    const { stockId, totalStockWeightUsed } = req.body;
+    const { stockId, targetPieces, totalCutWeight } = req.body;
 
-    // Verify stock exists
+    // Verify stock exists and has enough quantity
     const stock = await IncomingStock.findById(stockId);
     if (!stock) {
       return res.status(404).json({
@@ -132,26 +120,33 @@ export const createCutting = async (req, res) => {
       });
     }
 
-    // Check if enough stock is available
-    if (parseFloat(totalStockWeightUsed) > stock.quantity) {
+    // Calculate total steel needed
+    const calculations = req.body;
+    const steelUsed = targetPieces * totalCutWeight;
+    const endPieceUsed = targetPieces * (req.body.endPieceWeight || 0.010);
+    const scrapUsed = req.body.cuttingType === 'CIRCULAR' 
+      ? targetPieces * (req.body.bhukiWeight || 0.010) 
+      : 0;
+    const totalSteelNeeded = steelUsed + endPieceUsed + scrapUsed;
+
+    if (stock.quantity < totalSteelNeeded) {
       return res.status(400).json({
         success: false,
-        message: `Insufficient stock. Only ${stock.quantity} kg available`
+        message: `Insufficient stock. Available: ${stock.quantity} kg, Required: ${totalSteelNeeded} kg`
       });
     }
 
-    // Auto-fill material and colorCode from stock
+    // Auto-fill material and color from stock
     req.body.material = stock.material;
     req.body.colorCode = stock.colorCode;
 
-    // Create cutting record (calculations happen in pre-save hook)
+    // Create cutting record
     const cutting = await Cutting.create(req.body);
 
     // Update stock quantity
-    stock.quantity -= parseFloat(totalStockWeightUsed);
+    stock.quantity = Number((stock.quantity - cutting.calculations.totalSteelUsed).toFixed(3));
     await stock.save();
 
-    // Populate and return
     await cutting.populate('stockId');
 
     res.status(201).json({
@@ -177,97 +172,7 @@ export const createCutting = async (req, res) => {
   }
 };
 
-// @desc    Update cutting record
-// @route   PUT /api/cutting/:id
-export const updateCutting = async (req, res) => {
-  try {
-    const cutting = await Cutting.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    ).populate('stockId');
-
-    if (!cutting) {
-      return res.status(404).json({
-        success: false,
-        message: 'Cutting record not found'
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: 'Cutting record updated successfully',
-      data: cutting
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: 'Error updating cutting record',
-      error: error.message
-    });
-  }
-};
-
-// @desc    Delete cutting record
-// @route   DELETE /api/cutting/:id
-export const deleteCutting = async (req, res) => {
-  try {
-    const cutting = await Cutting.findByIdAndDelete(req.params.id);
-
-    if (!cutting) {
-      return res.status(404).json({
-        success: false,
-        message: 'Cutting record not found'
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: 'Cutting record deleted successfully'
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error deleting cutting record',
-      error: error.message
-    });
-  }
-};
-
-// @desc    Get cutting records by type
-// @route   GET /api/cutting/type/:type
-export const getCuttingByType = async (req, res) => {
-  try {
-    const cuttingType = req.params.type.toUpperCase();
-
-    if (!['SHARING', 'CIRCULAR'].includes(cuttingType)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid cutting type. Use SHARING or CIRCULAR'
-      });
-    }
-
-    const cuttings = await Cutting.find({ cuttingType })
-      .populate('stockId')
-      .sort({ date: -1 });
-
-    res.status(200).json({
-      success: true,
-      count: cuttings.length,
-      data: cuttings
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching cutting records',
-      error: error.message
-    });
-  }
-};
-
-// Add these new controller functions
-
-// @desc    Get cutting records by month
+// @desc    Get cutting by month
 // @route   GET /api/cutting/month/:year/:month
 export const getCuttingByMonth = async (req, res) => {
   try {
@@ -285,22 +190,9 @@ export const getCuttingByMonth = async (req, res) => {
     .populate('stockId')
     .sort({ date: -1 });
 
-    // Calculate month totals
-    const totalPieces = cuttings.reduce((sum, c) => sum + (c.calculations?.totalPieces || 0), 0);
-    const totalWaste = cuttings.reduce((sum, c) => sum + (c.calculations?.totalWaste || 0), 0);
-    const totalBhuki = cuttings.reduce((sum, c) => sum + (c.calculations?.totalBhuki || 0), 0);
-
     res.status(200).json({
       success: true,
-      month: `${year}-${String(month).padStart(2, '0')}`,
       count: cuttings.length,
-      summary: {
-        totalPieces,
-        totalWaste: parseFloat(totalWaste.toFixed(3)),
-        totalBhuki: parseFloat(totalBhuki.toFixed(3)),
-        sharingOperations: cuttings.filter(c => c.cuttingType === 'SHARING').length,
-        circularOperations: cuttings.filter(c => c.cuttingType === 'CIRCULAR').length
-      },
       data: cuttings
     });
   } catch (error) {
@@ -321,34 +213,13 @@ export const getMonthlyCuttingStats = async (req, res) => {
         $group: {
           _id: {
             year: { $year: '$date' },
-            month: { $month: '$date' },
-            type: '$cuttingType'
+            month: { $month: '$date' }
           },
           totalOperations: { $sum: 1 },
           totalPieces: { $sum: '$calculations.totalPieces' },
+          totalSteelUsed: { $sum: '$calculations.totalSteelUsed' },
           totalWaste: { $sum: '$calculations.totalWaste' },
           totalBhuki: { $sum: '$calculations.totalBhuki' }
-        }
-      },
-      {
-        $group: {
-          _id: {
-            year: '$_id.year',
-            month: '$_id.month'
-          },
-          operations: {
-            $push: {
-              type: '$_id.type',
-              count: '$totalOperations',
-              pieces: '$totalPieces',
-              waste: '$totalWaste',
-              bhuki: '$totalBhuki'
-            }
-          },
-          totalOperations: { $sum: '$totalOperations' },
-          totalPieces: { $sum: '$totalPieces' },
-          totalWaste: { $sum: '$totalWaste' },
-          totalBhuki: { $sum: '$totalBhuki' }
         }
       },
       {
@@ -368,9 +239,9 @@ export const getMonthlyCuttingStats = async (req, res) => {
           },
           totalOperations: 1,
           totalPieces: 1,
+          totalSteelUsed: { $round: ['$totalSteelUsed', 3] },
           totalWaste: { $round: ['$totalWaste', 3] },
-          totalBhuki: { $round: ['$totalBhuki', 3] },
-          operations: 1
+          totalBhuki: { $round: ['$totalBhuki', 3] }
         }
       }
     ]);
@@ -387,4 +258,49 @@ export const getMonthlyCuttingStats = async (req, res) => {
       error: error.message
     });
   }
+};
+
+// @desc    Delete cutting record
+// @route   DELETE /api/cutting/:id
+export const deleteCutting = async (req, res) => {
+  try {
+    const cutting = await Cutting.findById(req.params.id);
+
+    if (!cutting) {
+      return res.status(404).json({
+        success: false,
+        message: 'Cutting record not found'
+      });
+    }
+
+    // Return steel to stock
+    const stock = await IncomingStock.findById(cutting.stockId);
+    if (stock) {
+      stock.quantity = Number((stock.quantity + cutting.calculations.totalSteelUsed).toFixed(3));
+      await stock.save();
+    }
+
+    await cutting.deleteOne();
+
+    res.status(200).json({
+      success: true,
+      message: 'Cutting record deleted successfully'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error deleting cutting record',
+      error: error.message
+    });
+  }
+};
+
+export default {
+  calculateCutting,
+  getAllCutting,
+  getCuttingByType,
+  createCutting,
+  getCuttingByMonth,
+  getMonthlyCuttingStats,
+  deleteCutting
 };

@@ -11,10 +11,8 @@ import {
 
 const router = express.Router();
 
-// Monthly stats route
+// Special routes (must come before /:id)
 router.get('/stats/monthly', getMonthlyForgingStats);
-
-// Month filter route
 router.get('/month/:year/:month', getForgingByMonth);
 
 // Main routes

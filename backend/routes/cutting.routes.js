@@ -1,28 +1,20 @@
 import express from 'express';
 import {
-  getAllCutting,
-  getCuttingById,
   calculateCutting,
-  createCutting,
-  updateCutting,
-  deleteCutting,
+  getAllCutting,
   getCuttingByType,
+  createCutting,
   getCuttingByMonth,
-  getMonthlyCuttingStats
+  getMonthlyCuttingStats,
+  deleteCutting
 } from '../controllers/cutting.controller.js';
 
 const router = express.Router();
 
-// Calculate route
+// Special routes (must come before /:id)
 router.post('/calculate', calculateCutting);
-
-// Monthly stats route
 router.get('/stats/monthly', getMonthlyCuttingStats);
-
-// Month filter route
 router.get('/month/:year/:month', getCuttingByMonth);
-
-// Get by type route
 router.get('/type/:type', getCuttingByType);
 
 // Main routes
@@ -32,8 +24,6 @@ router.route('/')
 
 // Single cutting routes
 router.route('/:id')
-  .get(getCuttingById)
-  .put(updateCutting)
   .delete(deleteCutting);
 
 export default router;

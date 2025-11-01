@@ -22,95 +22,99 @@ function Dashboard() {
     totalBabari: 0,
     avgEfficiency: 0
   });
-  const [recentStocks, setRecentStocks] = useState([]);
-  const [recentCuttings, setRecentCuttings] = useState([]);
-  const [recentForgings, setRecentForgings] = useState([]);
+  const [recentActivities, setRecentActivities] = useState([]);
   const [monthlyStockStats, setMonthlyStockStats] = useState([]);
   const [monthlyCuttingStats, setMonthlyCuttingStats] = useState([]);
   const [monthlyForgingStats, setMonthlyForgingStats] = useState([]);
+  const [materialSummary, setMaterialSummary] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedMonth, setSelectedMonth] = useState('all');
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedPeriod, setSelectedPeriod] = useState('all');
 
-  const months = [
-    { value: 'all', label: 'All Time' },
-    { value: '1', label: 'January' },
-    { value: '2', label: 'February' },
-    { value: '3', label: 'March' },
-    { value: '4', label: 'April' },
-    { value: '5', label: 'May' },
-    { value: '6', label: 'June' },
-    { value: '7', label: 'July' },
-    { value: '8', label: 'August' },
-    { value: '9', label: 'September' },
-    { value: '10', label: 'October' },
-    { value: '11', label: 'November' },
-    { value: '12', label: 'December' }
+  const periodOptions = [
+    { value: 'all', label: 'All Time', months: null },
+    { value: '1m', label: '1 Month', months: 1 },
+    { value: '3m', label: '3 Months', months: 3 },
+    { value: '6m', label: '6 Months', months: 6 },
+    { value: '1y', label: '1 Year', months: 12 }
   ];
-
-  const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
 
   useEffect(() => {
     fetchDashboardData();
-  }, [selectedMonth, selectedYear]);
+  }, [selectedPeriod]);
+
+  const getDateRange = () => {
+    const period = periodOptions.find(p => p.value === selectedPeriod);
+    if (!period || !period.months) return null;
+
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setMonth(startDate.getMonth() - period.months);
+
+    return { startDate, endDate };
+  };
+
+  const filterByDateRange = (items, dateField = 'date') => {
+    const dateRange = getDateRange();
+    if (!dateRange) return items;
+
+    return items.filter(item => {
+      const itemDate = new Date(item[dateField]);
+      return itemDate >= dateRange.startDate && itemDate <= dateRange.endDate;
+    });
+  };
 
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
       
-      // Fetch stocks based on month filter
-      let stocksResponse;
-      if (selectedMonth === 'all') {
-        stocksResponse = await axios.get(`${API_URL}/incoming-stock`);
-      } else {
-        stocksResponse = await axios.get(`${API_URL}/incoming-stock/month/${selectedYear}/${selectedMonth}`);
-      }
-      const stocks = stocksResponse.data.data || [];
-      
-      // Fetch cuttings based on month filter
-      let cuttingsResponse;
-      if (selectedMonth === 'all') {
-        cuttingsResponse = await axios.get(`${API_URL}/cutting`);
-      } else {
-        cuttingsResponse = await axios.get(`${API_URL}/cutting/month/${selectedYear}/${selectedMonth}`);
-      }
-      const cuttings = cuttingsResponse.data.data || [];
+      const [stocksRes, cuttingsRes, forgingsRes, materialSummaryRes] = await Promise.all([
+        axios.get(`${API_URL}/incoming-stock`),
+        axios.get(`${API_URL}/cutting`),
+        axios.get(`${API_URL}/forging`),
+        axios.get(`${API_URL}/incoming-stock/summary`)
+      ]);
 
-      // Fetch forgings based on month filter
-      let forgingsResponse;
-      if (selectedMonth === 'all') {
-        forgingsResponse = await axios.get(`${API_URL}/forging`);
-      } else {
-        forgingsResponse = await axios.get(`${API_URL}/forging/month/${selectedYear}/${selectedMonth}`);
-      }
-      const forgings = forgingsResponse.data.data || [];
+      // Apply date filtering
+      const stocks = filterByDateRange(stocksRes.data.data || []);
+      const cuttings = filterByDateRange(cuttingsRes.data.data || []);
+      const forgings = filterByDateRange(forgingsRes.data.data || []);
+
+      // Set material summary
+      setMaterialSummary(materialSummaryRes.data.data || []);
 
       // Fetch monthly statistics
-      const stockStatsResponse = await axios.get(`${API_URL}/incoming-stock/stats/monthly`);
-      setMonthlyStockStats(stockStatsResponse.data.data || []);
+      const [stockStatsRes, cuttingStatsRes, forgingStatsRes] = await Promise.all([
+        axios.get(`${API_URL}/incoming-stock/stats/monthly`),
+        axios.get(`${API_URL}/cutting/stats/monthly`),
+        axios.get(`${API_URL}/forging/stats/monthly`)
+      ]);
 
-      const cuttingStatsResponse = await axios.get(`${API_URL}/cutting/stats/monthly`);
-      setMonthlyCuttingStats(cuttingStatsResponse.data.data || []);
+      // Filter monthly stats based on period
+      const dateRange = getDateRange();
+      const filterMonthlyStats = (stats) => {
+        if (!dateRange) return stats;
+        
+        return stats.filter(stat => {
+          const statDate = new Date(stat.year, stat.month - 1);
+          return statDate >= dateRange.startDate && statDate <= dateRange.endDate;
+        });
+      };
 
-      const forgingStatsResponse = await axios.get(`${API_URL}/forging/stats/monthly`);
-      setMonthlyForgingStats(forgingStatsResponse.data.data || []);
+      setMonthlyStockStats(filterMonthlyStats(stockStatsRes.data.data || []));
+      setMonthlyCuttingStats(filterMonthlyStats(cuttingStatsRes.data.data || []));
+      setMonthlyForgingStats(filterMonthlyStats(forgingStatsRes.data.data || []));
 
       // Calculate stats
       const totalQuantity = stocks.reduce((sum, s) => sum + (s.quantity || 0), 0);
-      
-      // Cutting stats
       const sharings = cuttings.filter(c => c.cuttingType === 'SHARING');
       const circulars = cuttings.filter(c => c.cuttingType === 'CIRCULAR');
       const sharingWaste = sharings.reduce((sum, c) => sum + (c.calculations?.totalWaste || 0), 0);
       const circularWaste = circulars.reduce((sum, c) => sum + (c.calculations?.totalWaste || 0), 0);
       const totalBhuki = circulars.reduce((sum, c) => sum + (c.calculations?.totalBhuki || 0), 0);
       const totalPieces = cuttings.reduce((sum, c) => sum + (c.calculations?.totalPieces || 0), 0);
-      const totalWaste = sharingWaste + circularWaste;
-
-      // Forging stats
       const totalOkPieces = forgings.reduce((sum, f) => sum + (f.forgingResults?.finalOkPieces || 0), 0);
       const totalScrap = forgings.reduce((sum, f) => sum + (f.forgingResults?.scrapPieces || 0), 0);
-      const totalRejection = forgings.reduce((sum, f) => sum + (f.forgingResults?.rejectionPieces || 0), 0);
+      const totalRejection = forgings.reduce((sum, f) => sum + (f.rejectionQty || 0), 0);
       const totalBabari = forgings.reduce((sum, f) => sum + (f.forgingResults?.totalBabari || 0), 0);
       const avgEfficiency = forgings.length > 0 
         ? forgings.reduce((sum, f) => sum + (f.forgingResults?.efficiency || 0), 0) / forgings.length 
@@ -118,27 +122,51 @@ function Dashboard() {
 
       setStats({
         totalStock: stocks.length,
-        totalQuantity: totalQuantity,
+        totalQuantity,
         totalSharings: sharings.length,
         totalCirculars: circulars.length,
-        totalPieces: totalPieces,
-        totalWaste: totalWaste,
-        sharingWaste: sharingWaste,
-        circularWaste: circularWaste,
-        totalBhuki: totalBhuki,
+        totalPieces,
+        totalWaste: sharingWaste + circularWaste,
+        sharingWaste,
+        circularWaste,
+        totalBhuki,
         totalForgings: forgings.length,
-        totalOkPieces: totalOkPieces,
-        totalScrap: totalScrap,
-        totalRejection: totalRejection,
-        totalBabari: totalBabari,
-        avgEfficiency: avgEfficiency
+        totalOkPieces,
+        totalScrap,
+        totalRejection,
+        totalBabari,
+        avgEfficiency
       });
 
-      // Recent records
-      setRecentStocks(stocks.slice(0, 5));
-      setRecentCuttings(cuttings.slice(0, 5));
-      setRecentForgings(forgings.slice(0, 5));
-      
+      // Combine recent activities
+      const activities = [
+        ...stocks.slice(0, 3).map(s => ({
+          type: 'stock',
+          icon: '📦',
+          title: s.partName,
+          subtitle: `${s.partyName} • ${s.quantity.toFixed(2)} kg`,
+          date: s.date,
+          color: '#48bb78'
+        })),
+        ...cuttings.slice(0, 3).map(c => ({
+          type: 'cutting',
+          icon: c.cuttingType === 'SHARING' ? '🔧' : '⭕',
+          title: c.partName,
+          subtitle: `${c.cuttingType} • ${c.calculations?.totalPieces || 0} pieces`,
+          date: c.date,
+          color: '#ed8936'
+        })),
+        ...forgings.slice(0, 3).map(f => ({
+          type: 'forging',
+          icon: '🔨',
+          title: f.partName,
+          subtitle: `OK: ${f.forgingResults?.finalOkPieces || 0} • ${f.forgingResults?.efficiency?.toFixed(1) || 0}%`,
+          date: f.date,
+          color: '#9f7aea'
+        }))
+      ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 8);
+
+      setRecentActivities(activities);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -146,496 +174,390 @@ function Dashboard() {
     }
   };
 
+  const getColorStyle = (colorCode) => {
+    const colorMap = {
+      'GREEN': '#10b981',
+      'ORANGE': '#f97316',
+      'PURPLE': '#a855f7',
+      'COFFEE': '#92400e',
+      'GRAY': '#6b7280',
+      'YELLOW': '#eab308',
+      'BLACK': '#1f2937',
+      'WHITE': '#f3f4f6'
+    };
+    return colorMap[colorCode] || '#6b7280';
+  };
+
   if (loading) {
     return (
-      <div className="loading-container">
-        <div className="loading">Loading dashboard...</div>
+      <div className="dashboard-loading">
+        <div className="loading-spinner-large"></div>
+        <p>Loading dashboard...</p>
       </div>
     );
   }
 
+  // Calculate material breakdown
+  const materialBreakdown = materialSummary.reduce((acc, item) => {
+    if (!acc[item.material]) {
+      acc[item.material] = {
+        material: item.material,
+        colorCode: item.colorCode,
+        totalQuantity: 0,
+        items: 0
+      };
+    }
+    acc[item.material].totalQuantity += item.totalQuantity;
+    acc[item.material].items += item.count;
+    return acc;
+  }, {});
+
+  const materialData = Object.values(materialBreakdown);
+  const totalStock = materialData.reduce((sum, m) => sum + m.totalQuantity, 0);
+
   return (
-    <div className="dashboard">
-      <div className="dashboard-header">
-        <div>
-          <h1>🏭 Forge ERP Dashboard</h1>
-          <p className="dashboard-subtitle">Manufacturing Operations Management System</p>
+    <div className="dashboard-modern">
+      {/* Hero Section */}
+      <div className="hero-section">
+        <div className="hero-content">
+          <h1 className="hero-title">
+            Welcome Back! 👋
+          </h1>
+          <p className="hero-subtitle">
+            Here's what's happening with your manufacturing operations
+          </p>
         </div>
-        <button className="btn-refresh" onClick={fetchDashboardData}>
-          🔄 Refresh
+        <button className="refresh-btn" onClick={fetchDashboardData}>
+          <span className="refresh-icon">🔄</span>
+          Refresh Data
         </button>
       </div>
 
-      {/* Month Filter */}
-      <div className="filter-container">
-        <div className="filter-group">
-          <label>📅 View Data for:</label>
-          <select 
-            value={selectedMonth} 
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            className="month-select"
-          >
-            {months.map(month => (
-              <option key={month.value} value={month.value}>
-                {month.label}
-              </option>
-            ))}
-          </select>
-          
-          {selectedMonth !== 'all' && (
-            <select 
-              value={selectedYear} 
-              onChange={(e) => setSelectedYear(e.target.value)}
-              className="year-select"
+      {/* Period Filter */}
+      <div className="dashboard-filter-section">
+        <div className="filter-label">
+          <span className="filter-icon">📅</span>
+          <span>View Data for:</span>
+        </div>
+        <div className="period-selector">
+          {periodOptions.map(period => (
+            <button
+              key={period.value}
+              className={`period-btn ${selectedPeriod === period.value ? 'active' : ''}`}
+              onClick={() => setSelectedPeriod(period.value)}
             >
-              {years.map(year => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
-            </select>
-          )}
+              {period.label}
+            </button>
+          ))}
         </div>
-        <div className="filter-info">
-          {selectedMonth === 'all' ? (
-            <span className="period-badge all">Showing All Time Data</span>
+      </div>
+
+      {/* Quick Stats Grid */}
+      <div className="quick-stats-grid">
+        <div className="stat-box green">
+          <div className="stat-icon-box">
+            <span className="stat-icon">📦</span>
+          </div>
+          <div className="stat-info">
+            <h3>{stats.totalStock}</h3>
+            <p>Stock Items</p>
+            <span className="stat-badge">{stats.totalQuantity.toFixed(0)} kg</span>
+          </div>
+        </div>
+
+        <div className="stat-box blue">
+          <div className="stat-icon-box">
+            <span className="stat-icon">✂️</span>
+          </div>
+          <div className="stat-info">
+            <h3>{stats.totalSharings + stats.totalCirculars}</h3>
+            <p>Cutting Ops</p>
+            <span className="stat-badge">{stats.totalPieces} pieces</span>
+          </div>
+        </div>
+
+        <div className="stat-box purple">
+          <div className="stat-icon-box">
+            <span className="stat-icon">🔨</span>
+          </div>
+          <div className="stat-info">
+            <h3>{stats.totalForgings}</h3>
+            <p>Forging Ops</p>
+            <span className="stat-badge">{stats.totalOkPieces} OK</span>
+          </div>
+        </div>
+
+        <div className="stat-box orange">
+          <div className="stat-icon-box">
+            <span className="stat-icon">📈</span>
+          </div>
+          <div className="stat-info">
+            <h3>{stats.avgEfficiency.toFixed(1)}%</h3>
+            <p>Efficiency</p>
+            <span className="stat-badge">Avg Rate</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Material Stock Breakdown */}
+      <div className="material-stock-dashboard">
+        <div className="material-stock-header">
+          <h2>📊 Material Stock Overview</h2>
+          <button 
+            className="view-all-btn"
+            onClick={() => window.location.href = '/incoming-stock'}
+          >
+            View All →
+          </button>
+        </div>
+        
+        <div className="material-stock-grid">
+          {materialData.length === 0 ? (
+            <div className="empty-materials">
+              <span className="empty-icon">📦</span>
+              <p>No materials in stock</p>
+            </div>
           ) : (
-            <span className="period-badge month">
-              Showing {months.find(m => m.value === selectedMonth)?.label} {selectedYear}
-            </span>
+            materialData.map((mat) => (
+              <div key={mat.material} className="material-stock-card">
+                <div 
+                  className="material-stock-icon"
+                  style={{ backgroundColor: getColorStyle(mat.colorCode) }}
+                >
+                  <span className="material-initial">
+                    {mat.material.charAt(0)}
+                  </span>
+                </div>
+                <div className="material-stock-info">
+                  <h3>{mat.material}</h3>
+                  <div className="material-stock-meta">
+                    <span className="stock-quantity">{mat.totalQuantity.toFixed(0)} kg</span>
+                    <span className="stock-items">{mat.items} items</span>
+                  </div>
+                  <div className="material-progress-bar">
+                    <div 
+                      className="material-progress-fill"
+                      style={{ 
+                        width: `${totalStock > 0 ? (mat.totalQuantity / totalStock) * 100 : 0}%`,
+                        backgroundColor: getColorStyle(mat.colorCode)
+                      }}
+                    ></div>
+                  </div>
+                  <span className="stock-percentage">
+                    {totalStock > 0 ? ((mat.totalQuantity / totalStock) * 100).toFixed(1) : 0}% of total
+                  </span>
+                </div>
+              </div>
+            ))
           )}
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="stats-grid">
-        <div className="stat-card primary">
-          <div className="stat-icon-wrapper">
-            <div className="stat-icon">📦</div>
-          </div>
-          <div className="stat-content">
-            <h3>Total Stock Items</h3>
-            <p className="stat-number">{stats.totalStock}</p>
-            <span className="stat-label">Materials in inventory</span>
-          </div>
-        </div>
-
-        <div className="stat-card success">
-          <div className="stat-icon-wrapper">
-            <div className="stat-icon">⚖️</div>
-          </div>
-          <div className="stat-content">
-            <h3>Total Quantity</h3>
-            <p className="stat-number">{stats.totalQuantity.toFixed(2)}</p>
-            <span className="stat-label">Kilograms</span>
-          </div>
-        </div>
-
-        <div className="stat-card sharing">
-          <div className="stat-icon-wrapper">
-            <div className="stat-icon">🔧</div>
-          </div>
-          <div className="stat-content">
-            <h3>Sharing Operations</h3>
-            <p className="stat-number">{stats.totalSharings}</p>
-            <span className="stat-label">Total operations</span>
-          </div>
-        </div>
-
-        <div className="stat-card circular">
-          <div className="stat-icon-wrapper">
-            <div className="stat-icon">⭕</div>
-          </div>
-          <div className="stat-content">
-            <h3>Circular Operations</h3>
-            <p className="stat-number">{stats.totalCirculars}</p>
-            <span className="stat-label">Total operations</span>
-          </div>
-        </div>
-
-        <div className="stat-card production">
-          <div className="stat-icon-wrapper">
-            <div className="stat-icon">📊</div>
-          </div>
-          <div className="stat-content">
-            <h3>Cut Pieces</h3>
-            <p className="stat-number">{stats.totalPieces}</p>
-            <span className="stat-label">From cutting</span>
-          </div>
-        </div>
-
-        <div className="stat-card warning">
-          <div className="stat-icon-wrapper">
-            <div className="stat-icon">⚠️</div>
-          </div>
-          <div className="stat-content">
-            <h3>Cutting Waste</h3>
-            <p className="stat-number">{stats.totalWaste.toFixed(3)}</p>
-            <span className="stat-label">Kilograms</span>
-          </div>
-        </div>
-
-        <div className="stat-card forging">
-          <div className="stat-icon-wrapper">
-            <div className="stat-icon">🔨</div>
-          </div>
-          <div className="stat-content">
-            <h3>Forging Operations</h3>
-            <p className="stat-number">{stats.totalForgings}</p>
-            <span className="stat-label">Total forgings</span>
-          </div>
-        </div>
-
-        <div className="stat-card forging-ok">
-          <div className="stat-icon-wrapper">
-            <div className="stat-icon">✅</div>
-          </div>
-          <div className="stat-content">
-            <h3>Final OK Pieces</h3>
-            <p className="stat-number">{stats.totalOkPieces}</p>
-            <span className="stat-label">Forged successfully</span>
-          </div>
-        </div>
-
-        <div className="stat-card efficiency">
-          <div className="stat-icon-wrapper">
-            <div className="stat-icon">📈</div>
-          </div>
-          <div className="stat-content">
-            <h3>Avg Efficiency</h3>
-            <p className="stat-number">{stats.avgEfficiency.toFixed(1)}%</p>
-            <span className="stat-label">Forging success rate</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Forging Performance Section */}
-      <div className="forging-performance">
-        <h2>🔨 Forging Performance</h2>
-        <div className="performance-cards">
-          <div className="performance-card ok">
-            <div className="performance-icon">✅</div>
-            <div className="performance-content">
-              <h3>Final OK Pieces</h3>
-              <p className="performance-number">{stats.totalOkPieces}</p>
-              <span className="performance-label">Successfully forged</span>
-            </div>
-          </div>
-
-          <div className="performance-card scrap">
-            <div className="performance-icon">🗑️</div>
-            <div className="performance-content">
-              <h3>Scrap Pieces</h3>
-              <p className="performance-number">{stats.totalScrap}</p>
-              <span className="performance-label">Damaged during forging</span>
-            </div>
-          </div>
-
-          <div className="performance-card rejection">
-            <div className="performance-icon">❌</div>
-            <div className="performance-content">
-              <h3>Rejection Pieces</h3>
-              <p className="performance-number">{stats.totalRejection}</p>
-              <span className="performance-label">Quality failures</span>
-            </div>
-          </div>
-
-          <div className="performance-card babari">
-            <div className="performance-icon">🔥</div>
-            <div className="performance-content">
-              <h3>Total Babari</h3>
-              <p className="performance-number">{stats.totalBabari.toFixed(3)}</p>
-              <span className="performance-label">Kilograms (Flash/Excess)</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Waste Breakdown Section */}
-      <div className="waste-breakdown">
-        <h2>🗑️ Waste Analysis</h2>
-        <div className="waste-cards">
-          <div className="waste-card sharing-waste">
-            <div className="waste-header">
-              <span className="waste-icon">🔧</span>
-              <h3>Sharing Waste</h3>
-            </div>
-            <div className="waste-amount">
-              <span className="waste-number">{stats.sharingWaste.toFixed(3)}</span>
-              <span className="waste-unit">kg</span>
-            </div>
-            <div className="waste-details">
-              <div className="waste-item">
-                <span>Operations:</span>
-                <strong>{stats.totalSharings}</strong>
-              </div>
-              <div className="waste-item">
-                <span>Avg per operation:</span>
-                <strong>
-                  {stats.totalSharings > 0 ? (stats.sharingWaste / stats.totalSharings).toFixed(4) : '0.000'} kg
-                </strong>
-              </div>
-            </div>
-          </div>
-
-          <div className="waste-card circular-waste">
-            <div className="waste-header">
-              <span className="waste-icon">⭕</span>
-              <h3>Circular Waste</h3>
-            </div>
-            <div className="waste-amount">
-              <span className="waste-number">{stats.circularWaste.toFixed(3)}</span>
-              <span className="waste-unit">kg</span>
-            </div>
-            <div className="waste-details">
-              <div className="waste-item">
-                <span>Operations:</span>
-                <strong>{stats.totalCirculars}</strong>
-              </div>
-              <div className="waste-item">
-                <span>Avg per operation:</span>
-                <strong>
-                  {stats.totalCirculars > 0 ? (stats.circularWaste / stats.totalCirculars).toFixed(4) : '0.000'} kg
-                </strong>
-              </div>
-            </div>
-          </div>
-
-          <div className="waste-card bhuki-waste">
-            <div className="waste-header">
-              <span className="waste-icon">🔥</span>
-              <h3>Bhuki (Blend Waste)</h3>
-            </div>
-            <div className="waste-amount">
-              <span className="waste-number">{stats.totalBhuki.toFixed(3)}</span>
-              <span className="waste-unit">kg</span>
-            </div>
-            <div className="waste-details">
-              <div className="waste-item">
-                <span>From Circular:</span>
-                <strong>{stats.totalCirculars} ops</strong>
-              </div>
-              <div className="waste-item">
-                <span>Percentage of total:</span>
-                <strong>
-                  {stats.totalWaste > 0 ? ((stats.totalBhuki / stats.totalWaste) * 100).toFixed(1) : '0.0'}%
-                </strong>
-              </div>
-            </div>
-          </div>
-
-          <div className="waste-card total-waste">
-            <div className="waste-header">
-              <span className="waste-icon">📊</span>
-              <h3>Total Cutting Waste</h3>
-            </div>
-            <div className="waste-amount">
-              <span className="waste-number">{stats.totalWaste.toFixed(3)}</span>
-              <span className="waste-unit">kg</span>
-            </div>
-            <div className="waste-breakdown-chart">
-              <div className="chart-bar">
-                <div 
-                  className="chart-segment sharing" 
-                  style={{ width: `${stats.totalWaste > 0 ? (stats.sharingWaste / stats.totalWaste) * 100 : 0}%` }}
-                  title={`Sharing: ${stats.sharingWaste.toFixed(3)} kg`}
-                >
-                  {stats.totalWaste > 0 && ((stats.sharingWaste / stats.totalWaste) * 100).toFixed(0)}%
-                </div>
-                <div 
-                  className="chart-segment circular" 
-                  style={{ width: `${stats.totalWaste > 0 ? (stats.circularWaste / stats.totalWaste) * 100 : 0}%` }}
-                  title={`Circular: ${stats.circularWaste.toFixed(3)} kg`}
-                >
-                  {stats.totalWaste > 0 && ((stats.circularWaste / stats.totalWaste) * 100).toFixed(0)}%
-                </div>
-              </div>
-              <div className="chart-legend">
-                <span className="legend-item"><span className="legend-dot sharing"></span> Sharing</span>
-                <span className="legend-item"><span className="legend-dot circular"></span> Circular</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Monthly Trends Section */}
-      <div className="monthly-trends">
-        <h2>📈 Monthly Trends</h2>
-        <div className="trends-grid-three">
-          {/* Stock Trends */}
-          <div className="trend-card">
-            <h3>📦 Stock by Month</h3>
-            <div className="trend-list">
-              {monthlyStockStats.slice(0, 4).map((stat) => (
-                <div key={`${stat.year}-${stat.month}`} className="trend-item">
-                  <div className="trend-month">{stat.monthName} {stat.year}</div>
-                  <div className="trend-bars">
-                    <div className="trend-bar-container">
-                      <div className="trend-bar stock" style={{ width: `${(stat.totalItems / Math.max(...monthlyStockStats.map(s => s.totalItems))) * 100}%` }}>
-                        <span className="trend-value">{stat.totalItems}</span>
+      {/* Monthly Comparison */}
+      {(monthlyStockStats.length > 0 || monthlyCuttingStats.length > 0 || monthlyForgingStats.length > 0) && (
+        <div className="monthly-comparison">
+          <h2>📊 Monthly Performance Comparison</h2>
+          <div className="comparison-grid">
+            {/* Stock Comparison */}
+            {monthlyStockStats.length > 0 && (
+              <div className="comparison-card stock">
+                <h3>📦 Stock Additions</h3>
+                <div className="comparison-chart">
+                  {monthlyStockStats.slice(0, 6).map((stat, index) => (
+                    <div key={`${stat.year}-${stat.month}`} className="chart-bar-wrapper">
+                      <div className="chart-label">{stat.monthName.slice(0, 3)}</div>
+                      <div className="chart-bar-container">
+                        <div 
+                          className="chart-bar stock-bar"
+                          style={{ 
+                            height: `${(stat.totalItems / Math.max(...monthlyStockStats.map(s => s.totalItems))) * 100}%` 
+                          }}
+                        >
+                          <span className="bar-value">{stat.totalItems}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
+            )}
 
-          {/* Cutting Trends */}
-          <div className="trend-card">
-            <h3>✂️ Cutting by Month</h3>
-            <div className="trend-list">
-              {monthlyCuttingStats.slice(0, 4).map((stat) => (
-                <div key={`${stat.year}-${stat.month}`} className="trend-item">
-                  <div className="trend-month">{stat.monthName} {stat.year}</div>
-                  <div className="trend-bars">
-                    <div className="trend-bar-container">
-                      <div className="trend-bar cutting" style={{ width: `${(stat.totalOperations / Math.max(...monthlyCuttingStats.map(s => s.totalOperations))) * 100}%` }}>
-                        <span className="trend-value">{stat.totalOperations}</span>
+            {/* Cutting Comparison */}
+            {monthlyCuttingStats.length > 0 && (
+              <div className="comparison-card cutting">
+                <h3>✂️ Cutting Operations</h3>
+                <div className="comparison-chart">
+                  {monthlyCuttingStats.slice(0, 6).map((stat) => (
+                    <div key={`${stat.year}-${stat.month}`} className="chart-bar-wrapper">
+                      <div className="chart-label">{stat.monthName.slice(0, 3)}</div>
+                      <div className="chart-bar-container">
+                        <div 
+                          className="chart-bar cutting-bar"
+                          style={{ 
+                            height: `${(stat.totalOperations / Math.max(...monthlyCuttingStats.map(s => s.totalOperations))) * 100}%` 
+                          }}
+                        >
+                          <span className="bar-value">{stat.totalOperations}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
+            )}
 
-          {/* Forging Trends */}
-          <div className="trend-card">
-            <h3>🔨 Forging by Month</h3>
-            <div className="trend-list">
-              {monthlyForgingStats.slice(0, 4).map((stat) => (
-                <div key={`${stat.year}-${stat.month}`} className="trend-item">
-                  <div className="trend-month">{stat.monthName} {stat.year}</div>
-                  <div className="trend-bars">
-                    <div className="trend-bar-container">
-                      <div className="trend-bar forging" style={{ width: `${(stat.totalOperations / Math.max(...monthlyForgingStats.map(s => s.totalOperations))) * 100}%` }}>
-                        <span className="trend-value">{stat.totalOperations}</span>
+            {/* Forging Comparison */}
+            {monthlyForgingStats.length > 0 && (
+              <div className="comparison-card forging">
+                <h3>🔨 Forging Operations</h3>
+                <div className="comparison-chart">
+                  {monthlyForgingStats.slice(0, 6).map((stat) => (
+                    <div key={`${stat.year}-${stat.month}`} className="chart-bar-wrapper">
+                      <div className="chart-label">{stat.monthName.slice(0, 3)}</div>
+                      <div className="chart-bar-container">
+                        <div 
+                          className="chart-bar forging-bar"
+                          style={{ 
+                            height: `${(stat.totalOperations / Math.max(...monthlyForgingStats.map(s => s.totalOperations))) * 100}%` 
+                          }}
+                        >
+                          <span className="bar-value">{stat.totalOperations}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Recent Activity */}
-      <div className="recent-activity">
-        <div className="activity-card">
-          <h2>📦 Recent Stock</h2>
-          <div className="activity-list">
-            {recentStocks.length === 0 ? (
-              <p className="no-data">No stock records yet</p>
-            ) : (
-              recentStocks.map((stock) => (
-                <div key={stock._id} className="activity-item">
-                  <div className="activity-icon">📦</div>
-                  <div className="activity-content">
-                    <p className="activity-title">{stock.partName}</p>
-                    <p className="activity-subtitle">
-                      {stock.partyName} • {stock.material} • {stock.quantity.toFixed(2)} kg
-                    </p>
-                  </div>
-                  <div className="activity-date">
-                    {new Date(stock.date).toLocaleDateString()}
-                  </div>
-                </div>
-              ))
+              </div>
             )}
           </div>
         </div>
+      )}
 
-        <div className="activity-card">
-          <h2>✂️ Recent Cutting</h2>
-          <div className="activity-list">
-            {recentCuttings.length === 0 ? (
-              <p className="no-data">No cutting records yet</p>
-            ) : (
-              recentCuttings.map((cutting) => (
-                <div key={cutting._id} className="activity-item">
-                  <div className="activity-icon">
-                    {cutting.cuttingType === 'SHARING' ? '🔧' : '⭕'}
-                  </div>
-                  <div className="activity-content">
-                    <p className="activity-title">{cutting.partName}</p>
-                    <p className="activity-subtitle">
-                      {cutting.cuttingType} • {cutting.calculations?.totalPieces || 0} pieces
-                    </p>
-                  </div>
-                  <div className="activity-date">
-                    {new Date(cutting.date).toLocaleDateString()}
-                  </div>
-                </div>
-              ))
-            )}
+      {/* Main Content Grid */}
+      <div className="dashboard-grid">
+        {/* Production Overview */}
+        <div className="dashboard-card production-card">
+          <div className="card-header">
+            <h2>🏭 Production Overview</h2>
+            <span className="card-badge">Live</span>
+          </div>
+          <div className="production-metrics">
+            <div className="metric-item">
+              <div className="metric-label">Cut Pieces</div>
+              <div className="metric-value">{stats.totalPieces}</div>
+              <div className="metric-bar">
+                <div className="metric-fill blue" style={{width: '85%'}}></div>
+              </div>
+            </div>
+            <div className="metric-item">
+              <div className="metric-label">Final OK</div>
+              <div className="metric-value">{stats.totalOkPieces}</div>
+              <div className="metric-bar">
+                <div className="metric-fill green" style={{width: '75%'}}></div>
+              </div>
+            </div>
+            <div className="metric-item">
+              <div className="metric-label">Scrap</div>
+              <div className="metric-value">{stats.totalScrap}</div>
+              <div className="metric-bar">
+                <div className="metric-fill red" style={{width: '15%'}}></div>
+              </div>
+            </div>
+            <div className="metric-item">
+              <div className="metric-label">Rejection</div>
+              <div className="metric-value">{stats.totalRejection}</div>
+              <div className="metric-bar">
+                <div className="metric-fill orange" style={{width: '10%'}}></div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="activity-card">
-          <h2>🔨 Recent Forging</h2>
-          <div className="activity-list">
-            {recentForgings.length === 0 ? (
-              <p className="no-data">No forging records yet</p>
-            ) : (
-              recentForgings.map((forging) => (
-                <div key={forging._id} className="activity-item">
-                  <div className="activity-icon">🔨</div>
-                  <div className="activity-content">
-                    <p className="activity-title">{forging.partName}</p>
-                    <p className="activity-subtitle">
-                      OK: {forging.forgingResults?.finalOkPieces || 0} • 
-                      Efficiency: {forging.forgingResults?.efficiency?.toFixed(1) || 0}%
-                    </p>
-                  </div>
-                  <div className="activity-date">
-                    {new Date(forging.date).toLocaleDateString()}
-                  </div>
+        {/* Waste Analysis */}
+        <div className="dashboard-card waste-card">
+          <div className="card-header">
+            <h2>🗑️ Waste Analysis</h2>
+          </div>
+          <div className="waste-chart">
+            <div className="waste-circle">
+              <svg viewBox="0 0 200 200">
+                <circle cx="100" cy="100" r="80" fill="none" stroke="#e2e8f0" strokeWidth="20"/>
+                <circle 
+                  cx="100" 
+                  cy="100" 
+                  r="80" 
+                  fill="none" 
+                  stroke="#f56565" 
+                  strokeWidth="20"
+                  strokeDasharray={`${(stats.totalWaste / (stats.totalQuantity || 1)) * 502} 502`}
+                  transform="rotate(-90 100 100)"
+                />
+              </svg>
+              <div className="waste-center">
+                <h3>{stats.totalWaste.toFixed(2)}</h3>
+                <p>kg</p>
+              </div>
+            </div>
+            <div className="waste-breakdown">
+              <div className="waste-item">
+                <span className="waste-dot sharing"></span>
+                <span>Sharing: {stats.sharingWaste.toFixed(2)} kg</span>
+              </div>
+              <div className="waste-item">
+                <span className="waste-dot circular"></span>
+                <span>Circular: {stats.circularWaste.toFixed(2)} kg</span>
+              </div>
+              <div className="waste-item">
+                <span className="waste-dot bhuki"></span>
+                <span>Bhuki: {stats.totalBhuki.toFixed(2)} kg</span>
+              </div>
+              <div className="waste-item">
+                <span className="waste-dot babari"></span>
+                <span>Babari: {stats.totalBabari.toFixed(2)} kg</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Recent Activity */}
+        <div className="dashboard-card activity-card">
+          <div className="card-header">
+            <h2>⚡ Recent Activity</h2>
+            <span className="view-all">View All →</span>
+          </div>
+          <div className="activity-timeline">
+            {recentActivities.map((activity, index) => (
+              <div key={index} className="activity-item">
+                <div className="activity-icon" style={{background: activity.color}}>
+                  {activity.icon}
                 </div>
-              ))
-            )}
+                <div className="activity-content">
+                  <h4>{activity.title}</h4>
+                  <p>{activity.subtitle}</p>
+                  <span className="activity-time">
+                    {new Date(activity.date).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
       {/* Quick Actions */}
-      <div className="quick-actions">
-        <h2>⚡ Quick Actions</h2>
-        <div className="action-buttons">
-          <button className="action-btn primary" onClick={() => window.location.href = '/incoming-stock'}>
-            <span className="action-icon">📦</span>
-            <div>
-              <strong>Add Stock</strong>
-              <p>Add new materials</p>
-            </div>
-          </button>
-          
-          <button className="action-btn secondary" onClick={() => window.location.href = '/cutting'}>
-            <span className="action-icon">✂️</span>
-            <div>
-              <strong>Cutting</strong>
-              <p>New operation</p>
-            </div>
-          </button>
-          
-          <button className="action-btn tertiary" onClick={() => window.location.href = '/forging'}>
-            <span className="action-icon">🔨</span>
-            <div>
-              <strong>Forging</strong>
-              <p>New operation</p>
-            </div>
-          </button>
-
-          <button className="action-btn info" onClick={fetchDashboardData}>
-            <span className="action-icon">📊</span>
-            <div>
-              <strong>Refresh</strong>
-              <p>Update data</p>
-            </div>
-          </button>
-        </div>
+      <div className="quick-actions-modern">
+        <button className="action-card green" onClick={() => window.location.href = '/incoming-stock'}>
+          <span className="action-icon">📦</span>
+          <span className="action-text">Add Stock</span>
+        </button>
+        <button className="action-card blue" onClick={() => window.location.href = '/cutting'}>
+          <span className="action-icon">✂️</span>
+          <span className="action-text">New Cutting</span>
+        </button>
+        <button className="action-card purple" onClick={() => window.location.href = '/forging'}>
+          <span className="action-icon">🔨</span>
+          <span className="action-text">New Forging</span>
+        </button>
       </div>
     </div>
   );

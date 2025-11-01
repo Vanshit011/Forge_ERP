@@ -15,15 +15,17 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/forge_erp
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
-  .then(() => console.log('✅ MongoDB Connected'))
-  .catch(err => console.log('❌ MongoDB Error:', err));
+.then(() => console.log('✅ MongoDB Connected'))
+.catch(err => console.log('❌ MongoDB Error:', err));
 
 // Import routes
+import authRoutes from './routes/auth.routes.js';
 import incomingStockRoutes from './routes/incomingStock.routes.js';
 import cuttingRoutes from './routes/cutting.routes.js';
 import forgingRoutes from './routes/forging.routes.js';
 
 // API Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/incoming-stock', incomingStockRoutes);
 app.use('/api/cutting', cuttingRoutes);
 app.use('/api/forging', forgingRoutes);
@@ -32,10 +34,12 @@ app.use('/api/forging', forgingRoutes);
 app.get('/', (req, res) => {
   res.json({
     message: 'Welcome to Forge ERP API',
-    version: '1.0.0',
+    version: '2.0.0',
     endpoints: {
+      auth: '/api/auth',
       incomingStock: '/api/incoming-stock',
-      cutting: '/api/cutting'
+      cutting: '/api/cutting',
+      forging: '/api/forging'
     }
   });
 });

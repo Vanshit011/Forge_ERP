@@ -8,21 +8,21 @@ const forgingSchema = new mongoose.Schema({
     required: [true, 'Cutting reference is required']
   },
 
-  // Date
   date: {
     type: Date,
     required: [true, 'Date is required'],
     default: Date.now
   },
 
-  // Part Name (from cutting)
-  partName: {
+  // Material (from cutting/stock)
+  material: {
     type: String,
-    required: [true, 'Part name is required'],
+    required: [true, 'Material is required'],
+    uppercase: true,
     trim: true
   },
 
-  // Diameter (from cutting)
+  // Diameter
   dia: {
     type: Number,
     required: [true, 'Diameter is required']
@@ -31,19 +31,43 @@ const forgingSchema = new mongoose.Schema({
   // Size specification
   size: {
     type: String,
+    required: [true, 'Size is required'],
     trim: true
   },
 
-  // Final Cut Weight per piece (from cutting)
-  finalCutWeight: {
-    type: Number,
-    required: [true, 'Final cut weight is required']
+  // Part Name
+  partName: {
+    type: String,
+    required: [true, 'Part name is required'],
+    trim: true
   },
 
   // Total pieces from cutting
   totalPiecesFromCutting: {
     type: Number,
     required: [true, 'Total pieces from cutting is required']
+  },
+
+  // Forging quantity (pieces to forge)
+  forgingQty: {
+    type: Number,
+    required: [true, 'Forging quantity is required'],
+    min: [0, 'Forging quantity cannot be negative']
+  },
+
+  // Rejection quantity
+  rejectionQty: {
+    type: Number,
+    required: [true, 'Rejection quantity is required'],
+    default: 0,
+    min: [0, 'Rejection quantity cannot be negative']
+  },
+
+  // Forging ring weight (per piece in kg)
+  forgingRingWeight: {
+    type: Number,
+    required: [true, 'Forging ring weight is required'],
+    min: [0, 'Forging ring weight cannot be negative']
   },
 
   // Forging Results
@@ -69,14 +93,6 @@ const forgingSchema = new mongoose.Schema({
       min: [0, 'Scrap pieces cannot be negative']
     },
 
-    // Rejection pieces (quality failures)
-    rejectionPieces: {
-      type: Number,
-      required: [true, 'Rejection pieces count is required'],
-      default: 0,
-      min: [0, 'Rejection pieces cannot be negative']
-    },
-
     // Final OK pieces
     finalOkPieces: {
       type: Number,
@@ -84,10 +100,16 @@ const forgingSchema = new mongoose.Schema({
       min: [0, 'Final OK pieces cannot be negative']
     },
 
-    // Total forged pieces (OK + Scrap + Rejection)
+    // Total forged pieces
     totalForgedPieces: {
       type: Number,
       required: true
+    },
+
+    // Total ring weight
+    totalRingWeight: {
+      type: Number,
+      default: 0
     },
 
     // Forging efficiency percentage
@@ -111,17 +133,20 @@ const forgingSchema = new mongoose.Schema({
 // Pre-save middleware to calculate totals
 forgingSchema.pre('save', function(next) {
   try {
-    const { babariPerPiece, scrapPieces, rejectionPieces, finalOkPieces } = this.forgingResults;
+    const { babariPerPiece, scrapPieces, finalOkPieces } = this.forgingResults;
 
-    // Calculate total babari
-    this.forgingResults.totalBabari = Number((babariPerPiece * this.totalPiecesFromCutting).toFixed(3));
+    // Calculate total babari = babari per piece * forging qty
+    this.forgingResults.totalBabari = Number((babariPerPiece * this.forgingQty).toFixed(3));
 
-    // Calculate total forged pieces
-    this.forgingResults.totalForgedPieces = finalOkPieces + scrapPieces + rejectionPieces;
+    // Calculate total forged pieces = final OK + scrap + rejection
+    this.forgingResults.totalForgedPieces = finalOkPieces + scrapPieces + this.rejectionQty;
 
-    // Calculate efficiency (OK pieces / Total pieces from cutting * 100)
-    if (this.totalPiecesFromCutting > 0) {
-      this.forgingResults.efficiency = Number(((finalOkPieces / this.totalPiecesFromCutting) * 100).toFixed(2));
+    // Calculate total ring weight = final OK pieces * ring weight per piece
+    this.forgingResults.totalRingWeight = Number((finalOkPieces * this.forgingRingWeight).toFixed(3));
+
+    // Calculate efficiency (OK pieces / Forging qty * 100)
+    if (this.forgingQty > 0) {
+      this.forgingResults.efficiency = Number(((finalOkPieces / this.forgingQty) * 100).toFixed(2));
     }
 
     next();
@@ -133,5 +158,6 @@ forgingSchema.pre('save', function(next) {
 // Indexes
 forgingSchema.index({ cuttingId: 1, date: -1 });
 forgingSchema.index({ date: -1 });
+forgingSchema.index({ material: 1 });
 
 export default mongoose.model('Forging', forgingSchema);

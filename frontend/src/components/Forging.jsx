@@ -5,116 +5,76 @@ import '../styles/Forging.css';
 const API_URL = 'http://localhost:5000/api';
 
 function Forging() {
-  const [cuttings, setCuttings] = useState([]);
   const [forgings, setForgings] = useState([]);
-  const [monthlyStats, setMonthlyStats] = useState([]);
+  const [cuttingRecords, setCuttingRecords] = useState([]);
+  const [forgingStock, setForgingStock] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [selectedCutting, setSelectedCutting] = useState(null);
-  const [selectedMonth, setSelectedMonth] = useState('all');
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [showStockModal, setShowStockModal] = useState(false);
+  const [selectedStockForBreakdown, setSelectedStockForBreakdown] = useState(null);
 
   const [formData, setFormData] = useState({
     cuttingId: '',
     date: new Date().toISOString().split('T')[0],
     size: '',
     forgingQty: '',
-    rejectionQty: '0',
     forgingRingWeight: '',
+    rejectionQty: '0',
     forgingResults: {
-      babariPerPiece: '',
-      scrapPieces: '0'
-    },
-    remarks: ''
+      babariPerPiece: '0.010',
+      scrapPieces: '0',
+      finalOkPieces: ''
+    }
   });
 
-  const months = [
-    { value: 'all', label: 'All Months' },
-    { value: '1', label: 'January' },
-    { value: '2', label: 'February' },
-    { value: '3', label: 'March' },
-    { value: '4', label: 'April' },
-    { value: '5', label: 'May' },
-    { value: '6', label: 'June' },
-    { value: '7', label: 'July' },
-    { value: '8', label: 'August' },
-    { value: '9', label: 'September' },
-    { value: '10', label: 'October' },
-    { value: '11', label: 'November' },
-    { value: '12', label: 'December' }
-  ];
-
-  const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
-
   useEffect(() => {
-    fetchCuttings();
     fetchForgings();
-    fetchMonthlyStats();
-  }, [selectedMonth, selectedYear]);
-
-
-  // Add this useEffect in the Forging component
-  useEffect(() => {
-    const handleTriggerAdd = () => {
-      setShowForm(true);
-    };
-
-    window.addEventListener('triggerAddNew', handleTriggerAdd);
-    return () => window.removeEventListener('triggerAddNew', handleTriggerAdd);
+    fetchAvailableCuttingRecords();
+    fetchForgingStock();
   }, []);
-
-
-  const fetchCuttings = async () => {
-    try {
-      const response = await axios.get(`${API_URL}/cutting`);
-      // Only show cuttings that have pieces available
-      const availableCuttings = (response.data.data || []).filter(c =>
-        c.calculations?.totalPieces > 0
-      );
-      setCuttings(availableCuttings);
-    } catch (error) {
-      console.error('Error fetching cuttings:', error);
-    }
-  };
 
   const fetchForgings = async () => {
     try {
-      let response;
-
-      if (selectedMonth === 'all') {
-        response = await axios.get(`${API_URL}/forging`);
-      } else {
-        response = await axios.get(`${API_URL}/forging/month/${selectedYear}/${selectedMonth}`);
-      }
-
+      const response = await axios.get(`${API_URL}/forging`);
       setForgings(response.data.data || []);
     } catch (error) {
       console.error('Error fetching forgings:', error);
     }
   };
 
-  const fetchMonthlyStats = async () => {
+  const fetchAvailableCuttingRecords = async () => {
     try {
-      const response = await axios.get(`${API_URL}/forging/stats/monthly`);
-      setMonthlyStats(response.data.data || []);
+      const response = await axios.get(`${API_URL}/forging/available/cutting-records`);
+      setCuttingRecords(response.data.data || []);
     } catch (error) {
-      console.error('Error fetching monthly stats:', error);
+      console.error('Error fetching cutting records:', error);
+    }
+  };
+
+  const fetchForgingStock = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/forging/stock/summary`);
+      setForgingStock(response.data.data || []);
+    } catch (error) {
+      console.error('Error fetching forging stock:', error);
     }
   };
 
   const handleCuttingSelect = (e) => {
-    const cuttingId = e.target.value;
-    const cutting = cuttings.find(c => c._id === cuttingId);
+    const recordId = e.target.value;
+    const cutting = cuttingRecords.find(c => c._id === recordId);
 
     if (cutting) {
       setSelectedCutting(cutting);
       setFormData({
         ...formData,
-        cuttingId: cuttingId,
-        forgingQty: cutting.calculations?.totalPieces || ''
+        cuttingId: recordId,
+        size: `${cutting.dia}mm`
       });
     }
   };
+
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -134,60 +94,55 @@ function Forging() {
         [name]: value
       });
     }
-  };
 
-  const calculateFinalOk = () => {
-    const forging = parseInt(formData.forgingQty) || 0;
-    const scrap = parseInt(formData.forgingResults.scrapPieces) || 0;
-    const rejection = parseInt(formData.rejectionQty) || 0;
-    return Math.max(0, forging - scrap - rejection);
+    // Auto-calculate finalOkPieces
+    if (name === 'forgingQty' || name === 'rejectionQty' || name === 'forgingResults.scrapPieces') {
+      const qty = name === 'forgingQty' ? parseInt(value) || 0 : parseInt(formData.forgingQty) || 0;
+      const rejection = name === 'rejectionQty' ? parseInt(value) || 0 : parseInt(formData.rejectionQty) || 0;
+      const scrap = name === 'forgingResults.scrapPieces' ? parseInt(value) || 0 : parseInt(formData.forgingResults.scrapPieces) || 0;
+
+      const finalOk = qty - rejection - scrap;
+
+      setFormData(prev => ({
+        ...prev,
+        forgingQty: name === 'forgingQty' ? value : prev.forgingQty,
+        rejectionQty: name === 'rejectionQty' ? value : prev.rejectionQty,
+        forgingResults: {
+          ...prev.forgingResults,
+          scrapPieces: name === 'forgingResults.scrapPieces' ? value : prev.forgingResults.scrapPieces,
+          finalOkPieces: Math.max(0, finalOk).toString()
+        }
+      }));
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.cuttingId) {
-      alert('Please select a cutting record!');
-      return;
-    }
-
-    const finalOkPieces = calculateFinalOk();
-
     try {
       setLoading(true);
-      await axios.post(`${API_URL}/forging`, {
+
+      const payload = {
         cuttingId: formData.cuttingId,
         date: formData.date,
         size: formData.size,
         forgingQty: parseInt(formData.forgingQty),
-        rejectionQty: parseInt(formData.rejectionQty),
         forgingRingWeight: parseFloat(formData.forgingRingWeight),
+        rejectionQty: parseInt(formData.rejectionQty),
         forgingResults: {
           babariPerPiece: parseFloat(formData.forgingResults.babariPerPiece),
           scrapPieces: parseInt(formData.forgingResults.scrapPieces),
-          finalOkPieces: finalOkPieces
-        },
-        remarks: formData.remarks
-      });
+          finalOkPieces: parseInt(formData.forgingResults.finalOkPieces)
+        }
+      };
+
+      await axios.post(`${API_URL}/forging`, payload);
 
       alert('✅ Forging record created successfully!');
-      setShowForm(false);
-      setSelectedCutting(null);
-      setFormData({
-        cuttingId: '',
-        date: new Date().toISOString().split('T')[0],
-        size: '',
-        forgingQty: '',
-        rejectionQty: '0',
-        forgingRingWeight: '',
-        forgingResults: {
-          babariPerPiece: '',
-          scrapPieces: '0'
-        },
-        remarks: ''
-      });
+      resetForm();
       fetchForgings();
-      fetchMonthlyStats();
+      fetchAvailableCuttingRecords();
+      fetchForgingStock();
       setLoading(false);
     } catch (error) {
       alert('❌ Error: ' + (error.response?.data?.message || error.message));
@@ -201,24 +156,57 @@ function Forging() {
         await axios.delete(`${API_URL}/forging/${id}`);
         alert('✅ Forging record deleted successfully!');
         fetchForgings();
-        fetchMonthlyStats();
+        fetchAvailableCuttingRecords();
+        fetchForgingStock();
       } catch (error) {
         alert('❌ Error: ' + (error.response?.data?.message || error.message));
       }
     }
   };
 
+  const handleStockCardClick = (stock) => {
+    setSelectedStockForBreakdown(stock);
+    setShowStockModal(true);
+  };
+
+  const getStockBreakdown = () => {
+    if (!selectedStockForBreakdown) return [];
+
+    return forgings.filter(
+      f => f.material === selectedStockForBreakdown.material &&
+        f.dia === selectedStockForBreakdown.dia
+    );
+  };
+
+  const resetForm = () => {
+    setShowForm(false);
+    setSelectedCutting(null);
+    setFormData({
+      cuttingId: '',
+      date: new Date().toISOString().split('T')[0],
+      size: '',
+      forgingQty: '',
+      forgingRingWeight: '',
+      rejectionQty: '0',
+      forgingResults: {
+        babariPerPiece: '0.010',
+        scrapPieces: '0',
+        finalOkPieces: ''
+      }
+    });
+  };
+
   const getTotalStats = () => {
-    const totalForgingQty = forgings.reduce((sum, f) => sum + (f.forgingQty || 0), 0);
-    const totalOk = forgings.reduce((sum, f) => sum + (f.forgingResults?.finalOkPieces || 0), 0);
-    const totalScrap = forgings.reduce((sum, f) => sum + (f.forgingResults?.scrapPieces || 0), 0);
-    const totalRejection = forgings.reduce((sum, f) => sum + (f.rejectionQty || 0), 0);
-    const totalBabari = forgings.reduce((sum, f) => sum + (f.forgingResults?.totalBabari || 0), 0);
+    const totalOkPieces = forgings.reduce((sum, f) => sum + (f.forgingResults?.finalOkPieces || 0), 0);
     const totalRingWeight = forgings.reduce((sum, f) => sum + (f.forgingResults?.totalRingWeight || 0), 0);
+    const totalRejections = forgings.reduce((sum, f) => sum + (f.rejectionQty || 0), 0);
+    const totalScrap = forgings.reduce((sum, f) => sum + (f.forgingResults?.scrapPieces || 0), 0);
+    const totalBabari = forgings.reduce((sum, f) => sum + (f.forgingResults?.totalBabari || 0), 0);
     const avgEfficiency = forgings.length > 0
       ? forgings.reduce((sum, f) => sum + (f.forgingResults?.efficiency || 0), 0) / forgings.length
       : 0;
-    return { totalForgingQty, totalOk, totalScrap, totalRejection, totalBabari, totalRingWeight, avgEfficiency };
+
+    return { totalOkPieces, totalRingWeight, totalRejections, totalScrap, totalBabari, avgEfficiency };
   };
 
   const stats = getTotalStats();
@@ -239,15 +227,133 @@ function Forging() {
 
   return (
     <div className="forging-modern">
+      {/* Stock Breakdown Modal */}
+      {showStockModal && selectedStockForBreakdown && (
+        <div className="modal-overlay" onClick={() => setShowStockModal(false)}>
+          <div className="forging-breakdown-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>
+                <span
+                  className="material-dot-large"
+                  style={{ backgroundColor: getColorStyle(selectedStockForBreakdown.colorCode) }}
+                ></span>
+                {selectedStockForBreakdown.material} - {selectedStockForBreakdown.dia}mm
+              </h2>
+              <button
+                className="close-modal-btn"
+                onClick={() => setShowStockModal(false)}
+              >
+                ✖
+              </button>
+            </div>
+
+            <div className="modal-body">
+              {getStockBreakdown().length === 0 ? (
+                <div className="empty-breakdown">
+                  <p>No forging operations for this material-diameter combination</p>
+                </div>
+              ) : (
+                <div className="breakdown-list">
+                  {getStockBreakdown().map((item, idx) => (
+                    <div key={idx} className="breakdown-item">
+                      <div className="breakdown-item-header">
+                        <div className="breakdown-info">
+                          <span className="breakdown-icon">🔨</span>
+                          <div>
+                            <span className="breakdown-title">{item.partName}</span>
+                            <span className="breakdown-subtitle">
+                              {new Date(item.date).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                        <span className="efficiency-badge">
+                          {item.forgingResults?.efficiency?.toFixed(1)}% Efficiency
+                        </span>
+                      </div>
+
+                      <div className="breakdown-metrics">
+                        <div className="metric-box">
+                          <span className="metric-icon">🔨</span>
+                          <div>
+                            <p className="metric-label">Forged</p>
+                            <p className="metric-value">{item.forgingQty} pcs</p>
+                          </div>
+                        </div>
+                        <div className="metric-box">
+                          <span className="metric-icon">✅</span>
+                          <div>
+                            <p className="metric-label">OK Pieces</p>
+                            <p className="metric-value">{item.forgingResults?.finalOkPieces} pcs</p>
+                          </div>
+                        </div>
+                        <div className="metric-box">
+                          <span className="metric-icon">⚖️</span>
+                          <div>
+                            <p className="metric-label">Ring Wt/Pc</p>
+                            <p className="metric-value">{item.forgingRingWeight?.toFixed(3)} kg</p>
+                          </div>
+                        </div>
+                        <div className="metric-box">
+                          <span className="metric-icon">📦</span>
+                          <div>
+                            <p className="metric-label">Total Ring Wt</p>
+                            <p className="metric-value">{item.forgingResults?.totalRingWeight?.toFixed(2)} kg</p>
+                          </div>
+                        </div>
+                        <div className="metric-box">
+                          <span className="metric-icon">❌</span>
+                          <div>
+                            <p className="metric-label">Rejections</p>
+                            <p className="metric-value">{item.rejectionQty} pcs</p>
+                          </div>
+                        </div>
+                        <div className="metric-box">
+                          <span className="metric-icon">⚠️</span>
+                          <div>
+                            <p className="metric-label">Scrap</p>
+                            <p className="metric-value">{item.forgingResults?.scrapPieces} pcs</p>
+                          </div>
+                        </div>
+                        <div className="metric-box">
+                          <span className="metric-icon">♻️</span>
+                          <div>
+                            <p className="metric-label">Babari/Pc</p>
+                            <p className="metric-value">{item.forgingResults?.babariPerPiece?.toFixed(3)} kg</p>
+                          </div>
+                        </div>
+                      </div>
+
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="modal-footer">
+                <div className="total-summary">
+                  <span>Total Operations:</span>
+                  <strong>{getStockBreakdown().length}</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="forging-header">
         <div className="title-group">
           <h1>🔨 Forging Operations</h1>
-          <p className="subtitle">Track forging process with complete material traceability</p>
+          <p className="subtitle">Manage forging process and track production</p>
         </div>
         <button
           className={`add-btn ${showForm ? 'cancel' : ''}`}
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => {
+            if (showForm) {
+              resetForm();
+            } else {
+              setShowForm(true);
+            }
+          }}
         >
           {showForm ? (
             <>
@@ -263,131 +369,104 @@ function Forging() {
         </button>
       </div>
 
-      {/* Month Filter */}
-      <div className="month-filter-section forging-filter">
-        <div className="filter-label">
-          <span className="filter-icon">📅</span>
-          <span>Filter by Period:</span>
+      {/* Stats */}
+      <div className="forging-stats">
+        <div className="forging-stat-card">
+          <div className="stat-icon-modern">✅</div>
+          <div className="stat-info-modern">
+            <h3>{stats.totalOkPieces}</h3>
+            <p>OK Pieces</p>
+          </div>
         </div>
-        <div className="filter-controls">
-          <select
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            className="filter-select"
-          >
-            {months.map(month => (
-              <option key={month.value} value={month.value}>
-                {month.label}
-              </option>
-            ))}
-          </select>
-
-          {selectedMonth !== 'all' && (
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(e.target.value)}
-              className="filter-select"
-            >
-              {years.map(year => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
-            </select>
-          )}
-
-          <div className="current-period">
-            {selectedMonth === 'all' ? (
-              <span className="period-badge all-time">📊 All Time Data</span>
-            ) : (
-              <span className="period-badge monthly forging">
-                📆 {months.find(m => m.value === selectedMonth)?.label} {selectedYear}
-              </span>
-            )}
+        <div className="forging-stat-card">
+          <div className="stat-icon-modern">⚖️</div>
+          <div className="stat-info-modern">
+            <h3>{stats.totalRingWeight.toFixed(2)}</h3>
+            <p>Total Ring Weight (kg)</p>
+          </div>
+        </div>
+        <div className="forging-stat-card">
+          <div className="stat-icon-modern">❌</div>
+          <div className="stat-info-modern">
+            <h3>{stats.totalRejections}</h3>
+            <p>Rejections</p>
+          </div>
+        </div>
+        <div className="forging-stat-card">
+          <div className="stat-icon-modern">⚠️</div>
+          <div className="stat-info-modern">
+            <h3>{stats.totalScrap}</h3>
+            <p>Scrap Pieces</p>
+          </div>
+        </div>
+        <div className="forging-stat-card">
+          <div className="stat-icon-modern">♻️</div>
+          <div className="stat-info-modern">
+            <h3>{stats.totalBabari.toFixed(2)}</h3>
+            <p>Total Babari (kg)</p>
+          </div>
+        </div>
+        <div className="forging-stat-card">
+          <div className="stat-icon-modern">📊</div>
+          <div className="stat-info-modern">
+            <h3>{stats.avgEfficiency.toFixed(1)}%</h3>
+            <p>Avg Efficiency</p>
           </div>
         </div>
       </div>
 
-      {/* Monthly Statistics */}
-      {monthlyStats.length > 0 && (
-        <div className="monthly-overview">
-          <h3>📈 Monthly Breakdown</h3>
-          <div className="monthly-cards">
-            {monthlyStats.slice(0, 6).map((stat) => (
-              <div key={`${stat.year}-${stat.month}`} className="monthly-card forging">
-                <div className="monthly-card-header">
-                  <span className="month-name">{stat.monthName}</span>
-                  <span className="month-year">{stat.year}</span>
-                </div>
-                <div className="monthly-card-body">
-                  <div className="monthly-stat">
-                    <span className="stat-label">Operations</span>
-                    <span className="stat-value">{stat.totalOperations}</span>
-                  </div>
-                  <div className="monthly-stat">
-                    <span className="stat-label">OK Pieces</span>
-                    <span className="stat-value">{stat.totalOkPieces}</span>
-                  </div>
-                  <div className="monthly-stat">
-                    <span className="stat-label">Efficiency</span>
-                    <span className="stat-value">{stat.avgEfficiency?.toFixed(1)}%</span>
-                  </div>
-                  <div className="monthly-stat">
-                    <span className="stat-label">Ring Weight</span>
-                    <span className="stat-value">{stat.totalRingWeight} kg</span>
+
+      {/* Forging Stock Summary */}
+      {forgingStock.length > 0 && (
+        <div className="forging-stock-section">
+          <h2>📦 Forging Stock Available</h2>
+          <div className="forging-stock-grid">
+            {forgingStock.map((stock, idx) => (
+              <div
+                key={idx}
+                className="forging-stock-card clickable"
+                onClick={() => handleStockCardClick(stock)}
+                style={{ cursor: 'pointer' }}
+              >
+                <div className="stock-card-header">
+                  <span
+                    className="material-dot"
+                    style={{ backgroundColor: getColorStyle(stock.colorCode) }}
+                  ></span>
+                  <div className="stock-header-info">
+                    <h3>{stock.material}</h3>
+                    <span className="dia-badge">{stock.dia} mm</span>
                   </div>
                 </div>
+                <div className="stock-metrics">
+                  <div className="metric">
+                    <span className="metric-icon">📦</span>
+                    <div>
+                      <strong>{stock.totalFinalOkPieces} pcs</strong>
+                      <span>Available Stock</span>
+                    </div>
+                  </div>
+                  <div className="metric">
+                    <span className="metric-icon">⚖️</span>
+                    <div>
+                      <strong>{stock.totalRingWeight} kg</strong>
+                      <span>Total Weight</span>
+                    </div>
+                  </div>
+                  <div className="metric">
+                    <span className="metric-icon">📊</span>
+                    <div>
+                      <strong>{stock.avgEfficiency}%</strong>
+                      <span>Efficiency</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="card-hint">👆 Click to see operations</div>
               </div>
             ))}
           </div>
         </div>
       )}
-
-      {/* Stats */}
-      <div className="forging-stats-grid">
-        <div className="forging-stat-card ok">
-          <div className="stat-icon-forging">✅</div>
-          <div className="stat-info-forging">
-            <h3>{stats.totalOk}</h3>
-            <p>OK Pieces</p>
-          </div>
-        </div>
-        <div className="forging-stat-card forging-qty">
-          <div className="stat-icon-forging">🎯</div>
-          <div className="stat-info-forging">
-            <h3>{stats.totalForgingQty}</h3>
-            <p>Forging Qty</p>
-          </div>
-        </div>
-        <div className="forging-stat-card scrap">
-          <div className="stat-icon-forging">🗑️</div>
-          <div className="stat-info-forging">
-            <h3>{stats.totalScrap}</h3>
-            <p>Scrap</p>
-          </div>
-        </div>
-        <div className="forging-stat-card rejection">
-          <div className="stat-icon-forging">❌</div>
-          <div className="stat-info-forging">
-            <h3>{stats.totalRejection}</h3>
-            <p>Rejection</p>
-          </div>
-        </div>
-        <div className="forging-stat-card efficiency">
-          <div className="stat-icon-forging">📈</div>
-          <div className="stat-info-forging">
-            <h3>{stats.avgEfficiency.toFixed(1)}%</h3>
-            <p>Avg Efficiency</p>
-          </div>
-        </div>
-        <div className="forging-stat-card ring">
-          <div className="stat-icon-forging">💍</div>
-          <div className="stat-info-forging">
-            <h3>{stats.totalRingWeight.toFixed(2)}</h3>
-            <p>Ring Weight (kg)</p>
-          </div>
-        </div>
-      </div>
 
       {/* Form */}
       {showForm && (
@@ -398,7 +477,7 @@ function Forging() {
           </div>
 
           <form onSubmit={handleSubmit}>
-            {/* Cutting Selection */}
+            {/* Cutting Record Selection */}
             <div className="cutting-select-section">
               <label>Select Cutting Record *</label>
               <select
@@ -408,27 +487,23 @@ function Forging() {
                 required
                 className="select-modern"
               >
-                <option value="">-- Select Cutting --</option>
-                {cuttings.map((cutting) => (
-                  <option key={cutting._id} value={cutting._id}>
-                    {new Date(cutting.date).toLocaleDateString()} |
-                    {cutting.partName} |
-                    {cutting.material} ({cutting.colorCode}) |
-                    Dia: {cutting.dia}mm |
-                    {cutting.cuttingType} |
-                    Available: {cutting.calculations?.totalPieces || 0} pcs
+                <option value="">-- Select Cutting Record --</option>
+                {cuttingRecords.map((record) => (
+                  <option key={record._id} value={record._id}>
+                    {record.material} - {record.dia}mm |
+                    {record.partName} |
+                    Cut Wt: {record.cuttingWeightPerPiece} kg/pc |
+                    Available: {record.availablePieces} pcs |
+                    {new Date(record.date).toLocaleDateString()}
                   </option>
                 ))}
               </select>
 
+
               {selectedCutting && (
                 <div className="selected-cutting-card">
-                  <h4>✅ Selected Cutting Details</h4>
-                  <div className="cutting-info-grid">
-                    <div className="info-item">
-                      <span>Part:</span>
-                      <strong>{selectedCutting.partName}</strong>
-                    </div>
+                  <h4>✅ Selected Cutting Record</h4>
+                  <div className="cutting-info-grid-extended">
                     <div className="info-item">
                       <span>Material:</span>
                       <strong>
@@ -444,20 +519,23 @@ function Forging() {
                       <strong>{selectedCutting.dia} mm</strong>
                     </div>
                     <div className="info-item">
-                      <span>Type:</span>
-                      <strong>{selectedCutting.cuttingType}</strong>
+                      <span>Part Name:</span>
+                      <strong>{selectedCutting.partName}</strong>
+                    </div>
+                    <div className="info-item">
+                      <span>Cutting Weight/Pc:</span>
+                      <strong className="text-blue">
+                        {selectedCutting.cuttingWeightPerPiece} kg
+                      </strong>
                     </div>
                     <div className="info-item">
                       <span>Available Pieces:</span>
-                      <strong className="text-green">{selectedCutting.calculations?.totalPieces || 0}</strong>
-                    </div>
-                    <div className="info-item">
-                      <span>Cut Weight:</span>
-                      <strong>{selectedCutting.calculations?.avgCutWeight?.toFixed(3) || 0} kg/pc</strong>
+                      <strong className="text-green">{selectedCutting.availablePieces} pcs</strong>
                     </div>
                   </div>
                 </div>
               )}
+
             </div>
 
             {/* Form Fields */}
@@ -480,10 +558,9 @@ function Forging() {
                   name="size"
                   value={formData.size}
                   onChange={handleInputChange}
-                  placeholder="50x30mm"
+                  placeholder="40mm"
                   required
                 />
-                <small className="help-text">Final forged size specification</small>
               </div>
 
               <div className="input-group">
@@ -493,16 +570,18 @@ function Forging() {
                   name="forgingQty"
                   value={formData.forgingQty}
                   onChange={handleInputChange}
-                  placeholder="2000"
+                  placeholder="1000"
                   required
-                  min="0"
-                  max={selectedCutting?.calculations?.totalPieces || 9999}
+                  min="1"
+                  max={selectedCutting?.availablePieces || 99999}
                 />
-                <small className="help-text">How many pieces to forge</small>
+                <small className="help-text">
+                  Max: {selectedCutting?.availablePieces || 0} pieces
+                </small>
               </div>
 
               <div className="input-group">
-                <label>Forging Ring Weight per Piece (kg) *</label>
+                <label>Ring Weight Per Piece (kg) *</label>
                 <input
                   type="number"
                   step="0.001"
@@ -511,37 +590,21 @@ function Forging() {
                   onChange={handleInputChange}
                   placeholder="0.450"
                   required
-                  min="0"
                 />
-                <small className="help-text">Weight of each forged ring</small>
               </div>
 
               <div className="input-group">
-                <label>Babari per Piece (kg) *</label>
+                <label>Babari Per Piece (kg) *</label>
                 <input
                   type="number"
                   step="0.001"
                   name="forgingResults.babariPerPiece"
                   value={formData.forgingResults.babariPerPiece}
                   onChange={handleInputChange}
-                  placeholder="0.050"
+                  placeholder="0.010"
                   required
-                  min="0"
                 />
-                <small className="help-text">Flash/excess material per piece</small>
-              </div>
-
-              <div className="input-group">
-                <label>Scrap Pieces *</label>
-                <input
-                  type="number"
-                  name="forgingResults.scrapPieces"
-                  value={formData.forgingResults.scrapPieces}
-                  onChange={handleInputChange}
-                  required
-                  min="0"
-                />
-                <small className="help-text">Damaged during forging</small>
+                <small className="help-text">Flash/Waste per piece</small>
               </div>
 
               <div className="input-group">
@@ -551,71 +614,42 @@ function Forging() {
                   name="rejectionQty"
                   value={formData.rejectionQty}
                   onChange={handleInputChange}
+                  placeholder="0"
                   required
                   min="0"
                 />
-                <small className="help-text">Quality check failures</small>
               </div>
 
-              <div className="input-group full-width">
-                <label>Remarks</label>
-                <textarea
-                  name="remarks"
-                  value={formData.remarks}
+              <div className="input-group">
+                <label>Scrap Pieces *</label>
+                <input
+                  type="number"
+                  name="forgingResults.scrapPieces"
+                  value={formData.forgingResults.scrapPieces}
                   onChange={handleInputChange}
-                  placeholder="Additional notes..."
-                  rows="3"
-                  maxLength="500"
-                ></textarea>
+                  placeholder="0"
+                  required
+                  min="0"
+                />
+                <small className="help-text">Damaged during forging</small>
+              </div>
+
+              <div className="input-group">
+                <label>Final OK Pieces *</label>
+                <input
+                  type="number"
+                  name="forgingResults.finalOkPieces"
+                  value={formData.forgingResults.finalOkPieces}
+                  onChange={handleInputChange}
+                  placeholder="Auto-calculated"
+                  required
+                  min="0"
+                  readOnly
+                  className="readonly-input"
+                />
+                <small className="help-text">Auto-calculated</small>
               </div>
             </div>
-
-            {/* Calculation Preview */}
-            {formData.forgingQty && (
-              <div className="forging-preview">
-                <h4>📊 Forging Summary</h4>
-                <div className="preview-grid-forging">
-                  <div className="preview-item-forging">
-                    <span>Forging Qty:</span>
-                    <strong>{formData.forgingQty} pcs</strong>
-                  </div>
-                  <div className="preview-item-forging">
-                    <span>Scrap:</span>
-                    <strong className="text-red">{formData.forgingResults.scrapPieces} pcs</strong>
-                  </div>
-                  <div className="preview-item-forging">
-                    <span>Rejection:</span>
-                    <strong className="text-orange">{formData.rejectionQty} pcs</strong>
-                  </div>
-                  <div className="preview-item-forging ok">
-                    <span>Final OK Pieces:</span>
-                    <strong className="text-green">{calculateFinalOk()} pcs</strong>
-                  </div>
-                  {formData.forgingResults.babariPerPiece && formData.forgingQty && (
-                    <div className="preview-item-forging">
-                      <span>Total Babari:</span>
-                      <strong>{(parseFloat(formData.forgingResults.babariPerPiece) * parseInt(formData.forgingQty)).toFixed(3)} kg</strong>
-                    </div>
-                  )}
-                  {formData.forgingRingWeight && (
-                    <div className="preview-item-forging">
-                      <span>Total Ring Weight:</span>
-                      <strong className="highlight-blue">
-                        {(parseFloat(formData.forgingRingWeight) * calculateFinalOk()).toFixed(3)} kg
-                      </strong>
-                    </div>
-                  )}
-                  {formData.forgingQty && (
-                    <div className="preview-item-forging">
-                      <span>Efficiency:</span>
-                      <strong className="highlight-purple">
-                        {((calculateFinalOk() / parseInt(formData.forgingQty)) * 100).toFixed(1)}%
-                      </strong>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
 
             <button
               type="submit"
@@ -637,91 +671,88 @@ function Forging() {
             <div className="empty-state">
               <div className="empty-icon">🔨</div>
               <h3>No forging records found</h3>
-              <p>
-                {selectedMonth === 'all'
-                  ? 'Start by creating your first forging operation'
-                  : `No forging operations found for ${months.find(m => m.value === selectedMonth)?.label} ${selectedYear}`
-                }
-              </p>
+              <p>Start by creating your first forging operation</p>
             </div>
           ) : (
             forgings.map((forging) => (
               <div key={forging._id} className="forging-record-card">
                 <div className="forging-card-header">
-                  <div className="header-left-info">
+                  <div className="header-info">
                     <h3>{forging.partName}</h3>
-                    <span className="material-info">
-                      {forging.material} • Dia: {forging.dia}mm • Size: {forging.size}
+                    <span
+                      className="type-badge"
+                      style={{ backgroundColor: getColorStyle(forging.colorCode) }}
+                    >
+                      {forging.material}
                     </span>
                   </div>
-                  <span className={`efficiency-tag ${forging.forgingResults?.efficiency >= 90 ? 'excellent' :
-                      forging.forgingResults?.efficiency >= 75 ? 'good' :
-                        forging.forgingResults?.efficiency >= 50 ? 'average' : 'poor'
-                    }`}>
-                    {forging.forgingResults?.efficiency?.toFixed(1) || 0}% Efficiency
+                  <button
+                    className="delete-btn-forging"
+                    onClick={() => handleDelete(forging._id)}
+                    title="Delete"
+                  >
+                    🗑️
+                  </button>
+                </div>
+
+                <div className="efficiency-indicator">
+                  <div className="efficiency-bar-container">
+                    <div
+                      className="efficiency-bar"
+                      style={{
+                        width: `${forging.forgingResults?.efficiency || 0}%`,
+                        backgroundColor: forging.forgingResults?.efficiency >= 90 ? '#10b981' :
+                          forging.forgingResults?.efficiency >= 75 ? '#f59e0b' : '#ef4444'
+                      }}
+                    ></div>
+                  </div>
+                  <span className="efficiency-text">
+                    {forging.forgingResults?.efficiency?.toFixed(1)}% Efficiency
                   </span>
                 </div>
 
-                <div className="forging-metrics">
-                  <div className="metric-box ok-box">
-                    <span className="metric-icon">✅</span>
-                    <div>
-                      <h4>{forging.forgingResults?.finalOkPieces || 0}</h4>
-                      <p>OK Pieces</p>
-                    </div>
+                <div className="forging-info">
+                  <div className="info-row">
+                    <span>📏 Size:</span>
+                    <strong>{forging.size}</strong>
                   </div>
-
-                  <div className="metric-box qty-box">
-                    <span className="metric-icon">🎯</span>
-                    <div>
-                      <h4>{forging.forgingQty || 0}</h4>
-                      <p>Forging Qty</p>
-                    </div>
+                  <div className="info-row">
+                    <span>🔨 Forged Qty:</span>
+                    <strong>{forging.forgingQty} pcs</strong>
                   </div>
-
-                  <div className="metric-box scrap-box">
-                    <span className="metric-icon">🗑️</span>
-                    <div>
-                      <h4>{forging.forgingResults?.scrapPieces || 0}</h4>
-                      <p>Scrap</p>
-                    </div>
+                  <div className="info-row">
+                    <span>✅ OK Pieces:</span>
+                    <strong className="text-green">
+                      {forging.forgingResults?.finalOkPieces} pcs
+                    </strong>
                   </div>
-
-                  <div className="metric-box rejection-box">
-                    <span className="metric-icon">❌</span>
-                    <div>
-                      <h4>{forging.rejectionQty || 0}</h4>
-                      <p>Rejection</p>
-                    </div>
+                  <div className="info-row">
+                    <span>⚖️ Ring Weight/Pc:</span>
+                    <strong>{forging.forgingRingWeight?.toFixed(3)} kg</strong>
                   </div>
-
-                  <div className="metric-box babari-box">
-                    <span className="metric-icon">🔥</span>
-                    <div>
-                      <h4>{forging.forgingResults?.totalBabari?.toFixed(3) || 0}</h4>
-                      <p>Babari (kg)</p>
-                    </div>
+                  <div className="info-row">
+                    <span>📊 Total Ring Weight:</span>
+                    <strong>{forging.forgingResults?.totalRingWeight?.toFixed(2)} kg</strong>
                   </div>
-
-                  <div className="metric-box ring-box">
-                    <span className="metric-icon">💍</span>
-                    <div>
-                      <h4>{forging.forgingResults?.totalRingWeight?.toFixed(3) || 0}</h4>
-                      <p>Ring Weight (kg)</p>
-                    </div>
+                  <div className="info-row">
+                    <span>❌ Rejections:</span>
+                    <strong className="text-red">{forging.rejectionQty} pcs</strong>
+                  </div>
+                  <div className="info-row">
+                    <span>⚠️ Scrap:</span>
+                    <strong className="text-orange">{forging.forgingResults?.scrapPieces} pcs</strong>
+                  </div>
+                  <div className="info-row">
+                    <span>♻️ Babari/Pc:</span>
+                    <strong>{forging.forgingResults?.babariPerPiece?.toFixed(3)} kg</strong>
                   </div>
                 </div>
+
 
                 <div className="forging-card-footer">
                   <span className="date-text">
                     📅 {new Date(forging.date).toLocaleDateString()}
                   </span>
-                  <button
-                    className="delete-btn-forging"
-                    onClick={() => handleDelete(forging._id)}
-                  >
-                    🗑️ Delete
-                  </button>
                 </div>
               </div>
             ))

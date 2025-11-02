@@ -22,6 +22,13 @@ const forgingSchema = new mongoose.Schema({
     trim: true
   },
 
+  // Color Code
+  colorCode: {
+    type: String,
+    required: [true, 'Color code is required'],
+    uppercase: true
+  },
+
   // Diameter
   dia: {
     type: Number,
@@ -52,7 +59,7 @@ const forgingSchema = new mongoose.Schema({
   forgingQty: {
     type: Number,
     required: [true, 'Forging quantity is required'],
-    min: [0, 'Forging quantity cannot be negative']
+    min: [1, 'Forging quantity must be at least 1']
   },
 
   // Rejection quantity
@@ -100,12 +107,6 @@ const forgingSchema = new mongoose.Schema({
       min: [0, 'Final OK pieces cannot be negative']
     },
 
-    // Total forged pieces
-    totalForgedPieces: {
-      type: Number,
-      required: true
-    },
-
     // Total ring weight
     totalRingWeight: {
       type: Number,
@@ -120,11 +121,7 @@ const forgingSchema = new mongoose.Schema({
   },
 
   // Remarks
-  remarks: {
-    type: String,
-    trim: true,
-    maxLength: [500, 'Remarks cannot exceed 500 characters']
-  }
+ 
 
 }, {
   timestamps: true

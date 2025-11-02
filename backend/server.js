@@ -23,12 +23,14 @@ import authRoutes from './routes/auth.routes.js';
 import incomingStockRoutes from './routes/incomingStock.routes.js';
 import cuttingRoutes from './routes/cutting.routes.js';
 import forgingRoutes from './routes/forging.routes.js';
+// import dispatchRoutes from './routes/dispatch.routes.js';
 
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/incoming-stock', incomingStockRoutes);
 app.use('/api/cutting', cuttingRoutes);
 app.use('/api/forging', forgingRoutes);
+// app.use('/api/dispatch', dispatchRoutes);
 
 // Welcome route
 app.get('/', (req, res) => {

@@ -5,25 +5,25 @@ import {
   createForging,
   updateForging,
   deleteForging,
+  getForgingStock,
+  getAvailableCuttingRecords,
   getForgingByMonth,
   getMonthlyForgingStats
 } from '../controllers/forging.controller.js';
 
 const router = express.Router();
 
-// Special routes (must come before /:id)
+// Stock and statistics routes (MUST come before :id routes to avoid conflicts)
+router.get('/stock/summary', getForgingStock);
+router.get('/available/cutting-records', getAvailableCuttingRecords);
 router.get('/stats/monthly', getMonthlyForgingStats);
 router.get('/month/:year/:month', getForgingByMonth);
 
-// Main routes
-router.route('/')
-  .get(getAllForging)
-  .post(createForging);
-
-// Single forging routes
-router.route('/:id')
-  .get(getForgingById)
-  .put(updateForging)
-  .delete(deleteForging);
+// CRUD routes
+router.get('/', getAllForging);
+router.post('/', createForging);
+router.get('/:id', getForgingById);
+router.put('/:id', updateForging);
+router.delete('/:id', deleteForging);
 
 export default router;

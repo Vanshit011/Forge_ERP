@@ -64,7 +64,7 @@ function Dashboard() {
       const totalQuantity = stocks.reduce((sum, s) => sum + (s.quantity || 0), 0);
       const totalItems = stocks.length;
       const usedInCutting = cuttings.reduce((sum, c) => sum + (c.calculations?.totalSteelUsed || 0), 0);
-      const availableQuantity = totalQuantity - usedInCutting;
+      const availableQuantity = totalQuantity;
 
       // CUTTING CALCULATIONS
       const sharings = cuttings.filter(c => c.cuttingType === 'SHARING');

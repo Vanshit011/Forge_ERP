@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import '../styles/Dashboard.css';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://forge-erp.vercel.app/api';
 
 function Dashboard() {
   const [stats, setStats] = useState({

@@ -75,7 +75,7 @@ function Dashboard() {
       const endPieceWaste = cuttings.reduce((sum, c) => sum + (c.calculations?.endPieceUsed || 0), 0);
       const totalBhuki = circulars.reduce((sum, c) => sum + (c.calculations?.totalBhuki || 0), 0);
       const totalPieces = cuttings.reduce((sum, c) => sum + (c.calculations?.totalPieces || 0), 0);
-      const totalCuttingWaste = sharingWaste + circularWaste + endPieceWaste + totalBhuki;
+      const totalCuttingWaste = sharingWaste + circularWaste ;
 
       // FORGING CALCULATIONS
       const totalForgingQty = forgings.reduce((sum, f) => sum + f.forgingQty, 0);
@@ -203,7 +203,7 @@ function Dashboard() {
               </div>
               <div className="detail-item warning">
                 <span className="detail-label">⚠️ Total Waste:</span>
-                <span className="detail-value">{(stats.sharingWaste + stats.circularWaste + stats.endPieceWaste + stats.totalBhuki).toFixed(2)} kg</span>
+                <span className="detail-value">{(stats.sharingWaste + stats.circularWaste).toFixed(2)} kg</span>
               </div>
             </div>
           </div>
@@ -253,7 +253,7 @@ function Dashboard() {
             <div className="stat-details">
               <div className="detail-item">
                 <span className="detail-label">Cutting Waste:</span>
-                <span className="detail-value">{(stats.sharingWaste + stats.circularWaste + stats.endPieceWaste + stats.totalBhuki).toFixed(2)} kg</span>
+                <span className="detail-value">{(stats.sharingWaste + stats.circularWaste).toFixed(2)} kg</span>
               </div>
               <div className="detail-item">
                 <span className="detail-label">Forging Waste (Babari):</span>

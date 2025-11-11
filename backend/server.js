@@ -8,7 +8,7 @@ dotenv.config();
 const app = express();
 
 app.use(cors({
-  origin: "https://forgeerp.vercel.app/",
+  origin: "https://forgeerp.vercel.app",
   credentials: true
 }));
 

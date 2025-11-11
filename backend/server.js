@@ -11,7 +11,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/forge_erp', {
+mongoose.connect(process.env.MONGODB_LIVE || 'mongodb://localhost:27017/forge_erp', {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })

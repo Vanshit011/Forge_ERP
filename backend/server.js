@@ -10,7 +10,7 @@ const app = express();
 // ---------------- CORS FIX ----------------
 app.use(
   cors({
-    origin: ["https://forgeerp.vercel.app", "http://localhost:5173"],
+    origin: ["http://localhost:3000", "https://forgeerp.vercel.app"],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   })

@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Forging from '../models/Forging.js';
 import Cutting from '../models/Cutting.js';
 
@@ -61,7 +62,8 @@ export const createForging = async (req, res) => {
       forgingQty,
       forgingRingWeight,
       rejectionQty,
-      forgingResults
+      forgingResults,
+      remarks
     } = req.body;
 
     // Validate cutting record exists
@@ -105,8 +107,8 @@ export const createForging = async (req, res) => {
         babariPerPiece: forgingResults?.babariPerPiece || 0,
         scrapPieces: forgingResults?.scrapPieces || 0,
         finalOkPieces: forgingResults?.finalOkPieces || 0
-      }
-      // remarks removed - not needed
+      },
+      remarks: remarks || '' // Add remarks (optional)
     });
 
     await forging.save();
@@ -176,6 +178,15 @@ export const updateForging = async (req, res) => {
       data: forging
     });
   } catch (error) {
+    if (error.name === 'ValidationError') {
+      const errors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        message: 'Validation error',
+        errors: errors
+      });
+    }
+
     res.status(400).json({
       success: false,
       message: 'Error updating forging record',
@@ -292,8 +303,8 @@ export const getAvailableCuttingRecords = async (req, res) => {
           totalPieces,
           forgedPieces,
           availablePieces,
-          // Add cutting weight per piece
-          cuttingWeightPerPiece: cutting.totalCutWeight || 0
+          cuttingWeightPerPiece: cutting.totalCutWeight || 0,
+          remarks: cutting.remarks || '' // Include cutting remarks
         };
       })
     );
@@ -314,7 +325,6 @@ export const getAvailableCuttingRecords = async (req, res) => {
     });
   }
 };
-
 
 // @desc    Get forging records by month
 // @route   GET /api/forging/month/:year/:month
@@ -409,6 +419,7 @@ export const getMonthlyForgingStats = async (req, res) => {
     });
   }
 };
+
 
 export default {
   getAllForging,

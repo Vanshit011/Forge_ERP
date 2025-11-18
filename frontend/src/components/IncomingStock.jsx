@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import '../styles/IncomingStock.css';
 
-const API_URL = 'https://forge-erp.vercel.app/api';
+const API_URL = 'http://localhost:5000/api';
 
 function IncomingStock() {
   const [stocks, setStocks] = useState([]);

@@ -119,16 +119,16 @@ const forgingSchema = new mongoose.Schema({
       default: 0
     }
   },
-
-  // Remarks
- 
-
+  remarks: {
+    type: String,
+    default: '' // This is usually fine for String
+  },
 }, {
   timestamps: true
 });
 
 // Pre-save middleware to calculate totals
-forgingSchema.pre('save', function(next) {
+forgingSchema.pre('save', function (next) {
   try {
     const { babariPerPiece, scrapPieces, finalOkPieces } = this.forgingResults;
 

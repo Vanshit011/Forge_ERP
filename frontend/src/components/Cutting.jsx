@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import '../styles/Cutting.css';
 
-const API_URL = 'https://forge-erp.vercel.app/api';
+const API_URL = 'http://localhost:5000/api';
 
 function Cutting() {
   const [activeTab, setActiveTab] = useState('sharing');
@@ -15,6 +15,10 @@ function Cutting() {
   const [showDiaBreakdown, setShowDiaBreakdown] = useState(false);
   const [selectedMaterialForBreakdown, setSelectedMaterialForBreakdown] = useState(null);
   const [editingCutting, setEditingCutting] = useState(null);
+
+  // NEW: derived values
+  const [availablePieces, setAvailablePieces] = useState(0);
+  const [requiredSteelForTarget, setRequiredSteelForTarget] = useState(0);
 
   const [formData, setFormData] = useState({
     stockId: '',
@@ -29,7 +33,8 @@ function Cutting() {
     cuttingWeightMax: '0.505',
     totalCutWeight: '0.520',
     endPieceWeight: '0.010',
-    bhukiWeight: '0.010'
+    bhukiWeight: '0.010',
+    remarks: '' // Added remarks field
   });
 
   useEffect(() => {
@@ -45,6 +50,23 @@ function Cutting() {
     window.addEventListener('triggerAddNew', handleTriggerAdd);
     return () => window.removeEventListener('triggerAddNew', handleTriggerAdd);
   }, []);
+
+  // NEW: Recompute derived values when relevant inputs change
+  useEffect(() => {
+    const totalCutWeight = parseFloat(formData.totalCutWeight) || 0;
+    const targetPieces = parseInt(formData.targetPieces, 10) || 0;
+
+    if (selectedStock && totalCutWeight > 0) {
+      // pieces we can cut from selected stock (floor)
+      const pieces = Math.floor(selectedStock.quantity / totalCutWeight);
+      setAvailablePieces(pieces);
+    } else {
+      setAvailablePieces(0);
+    }
+
+    const required = +(targetPieces * totalCutWeight).toFixed(3);
+    setRequiredSteelForTarget(required);
+  }, [selectedStock, formData.totalCutWeight, formData.targetPieces]);
 
   const fetchStocks = async () => {
     try {
@@ -70,10 +92,10 @@ function Cutting() {
     setShowForm(false);
     setCalculation(null);
     setEditingCutting(null);
-    setFormData({
-      ...formData,
+    setFormData(prev => ({
+      ...prev,
       cuttingType: tab.toUpperCase()
-    });
+    }));
   };
 
   const handleStockSelect = (e) => {
@@ -82,22 +104,40 @@ function Cutting() {
 
     if (stock) {
       setSelectedStock(stock);
-      setFormData({
-        ...formData,
+      setFormData(prev => ({
+        ...prev,
         stockId: stockId,
         material: stock.material,
         colorCode: stock.colorCode,
         partName: stock.partName,
         dia: stock.dia
-      });
+      }));
+    } else {
+      // reset if no selection
+      setSelectedStock(null);
+      setFormData(prev => ({ ...prev, stockId: '', material: '', colorCode: '', partName: '', dia: '' }));
     }
   };
 
   const handleInputChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // Helper: compute totalCutWeight from min/max, end piece and bhuki
+  const computeTotalCutWeightFromParts = () => {
+    const min = parseFloat(formData.cuttingWeightMin) || 0;
+    const max = parseFloat(formData.cuttingWeightMax) || 0;
+    // average of min and max
+    const avgCut = (min + max) / 2;
+    const endPiece = parseFloat(formData.endPieceWeight) || 0;
+    const bhuki = activeTab === 'circular' ? (parseFloat(formData.bhukiWeight) || 0) : 0;
+    const computed = +(avgCut + endPiece + bhuki).toFixed(3);
+    setFormData(prev => ({ ...prev, totalCutWeight: computed.toString() }));
+    return computed;
   };
 
   const handleCalculate = async () => {
@@ -105,7 +145,7 @@ function Cutting() {
       setLoading(true);
       const response = await axios.post(`${API_URL}/cutting/calculate`, {
         cuttingType: formData.cuttingType,
-        targetPieces: parseInt(formData.targetPieces),
+        targetPieces: parseInt(formData.targetPieces, 10),
         cuttingWeightMin: parseFloat(formData.cuttingWeightMin),
         cuttingWeightMax: parseFloat(formData.cuttingWeightMax),
         totalCutWeight: parseFloat(formData.totalCutWeight),
@@ -142,12 +182,13 @@ function Cutting() {
         cuttingType: formData.cuttingType,
         date: formData.date,
         partName: formData.partName,
-        dia: parseFloat(formData.dia),
-        targetPieces: parseInt(formData.targetPieces),
+        dia: parseFloat(formData.dia) || undefined,
+        targetPieces: parseInt(formData.targetPieces, 10),
         cuttingWeightMin: parseFloat(formData.cuttingWeightMin),
         cuttingWeightMax: parseFloat(formData.cuttingWeightMax),
         totalCutWeight: parseFloat(formData.totalCutWeight),
-        endPieceWeight: parseFloat(formData.endPieceWeight)
+        endPieceWeight: parseFloat(formData.endPieceWeight),
+        remarks: formData.remarks // Added remarks
       };
 
       if (formData.cuttingType === 'CIRCULAR') {
@@ -179,7 +220,8 @@ function Cutting() {
         cuttingWeightMax: '0.505',
         totalCutWeight: '0.520',
         endPieceWeight: '0.010',
-        bhukiWeight: '0.010'
+        bhukiWeight: '0.010',
+        remarks: '' // Reset remarks
       });
       fetchCuttings();
       fetchStocks();
@@ -202,15 +244,16 @@ function Cutting() {
       cuttingType: cutting.cuttingType,
       date: cutting.date,
       partName: cutting.partName,
-      dia: cutting.dia.toString(),
+      dia: cutting.dia?.toString() || '',
       material: cutting.material,
       colorCode: cutting.colorCode,
-      targetPieces: cutting.targetPieces.toString(),
-      cuttingWeightMin: cutting.cuttingWeightMin.toString(),
-      cuttingWeightMax: cutting.cuttingWeightMax.toString(),
-      totalCutWeight: cutting.totalCutWeight.toString(),
-      endPieceWeight: cutting.endPieceWeight.toString(),
-      bhukiWeight: cutting.bhukiWeight?.toString() || '0.010'
+      targetPieces: cutting.targetPieces?.toString() || '0',
+      cuttingWeightMin: cutting.cuttingWeightMin?.toString() || '0',
+      cuttingWeightMax: cutting.cuttingWeightMax?.toString() || '0',
+      totalCutWeight: cutting.totalCutWeight?.toString() || '0',
+      endPieceWeight: cutting.endPieceWeight?.toString() || '0',
+      bhukiWeight: cutting.bhukiWeight?.toString() || '0.010',
+      remarks: cutting.remarks || '' // Load remarks
     });
 
     const stock = stocks.find(s => s._id === cutting.stockId);
@@ -331,7 +374,8 @@ function Cutting() {
         totalWaste: cutting.calculations?.totalWaste || 0,
         totalBhuki: cutting.calculations?.totalBhuki || 0,
         date: cutting.date,
-        cuttingType: cutting.cuttingType
+        cuttingType: cutting.cuttingType,
+        remarks: cutting.remarks || '' // Include remarks
       }));
   };
 
@@ -503,7 +547,7 @@ function Cutting() {
           <span className="tab-icon">🔧</span>
           <div className="tab-content">
             <span className="tab-title">Sharing</span>
-            <span className="tab-count">{cuttings.length} ops</span>
+            <span className="tab-count">{cuttings.filter(c=>c.cuttingType==='SHARING').length} ops</span>
           </div>
         </button>
         <button
@@ -513,7 +557,7 @@ function Cutting() {
           <span className="tab-icon">⭕</span>
           <div className="tab-content">
             <span className="tab-title">Circular</span>
-            <span className="tab-count">{cuttings.length} ops</span>
+            <span className="tab-count">{cuttings.filter(c=>c.cuttingType==='CIRCULAR').length} ops</span>
           </div>
         </button>
       </div>
@@ -523,7 +567,7 @@ function Cutting() {
         <div className="material-cutting-breakdown">
           <h2>📦 Stock-wise Cutting Summary</h2>
           <div className="material-cutting-grid">
-            {getStockWiseCuttingBreakdown().map((stock) => (
+            {stockWiseBreakdown.map((stock) => (
               <div
                 key={stock.stockId}
                 className={`material-cutting-card ${stock.operations > 0 ? 'clickable' : 'disabled'}`}
@@ -706,6 +750,18 @@ function Cutting() {
                       <span>Part:</span>
                       <strong>{selectedStock.partName}</strong>
                     </div>
+
+                    {/* NEW: show how many pieces you can cut from this stock using current Total Cut Weight */}
+                    <div className="info-item">
+                      <span>Can Cut (approx):</span>
+                      <strong>{availablePieces.toLocaleString()} pcs</strong>
+                    </div>
+
+                    {/* NEW: show required steel for the entered target pieces */}
+                    <div className="info-item">
+                      <span>Steel needed for target:</span>
+                      <strong>{requiredSteelForTarget.toFixed(3)} kg</strong>
+                    </div>
                   </div>
                 </div>
               )}
@@ -777,16 +833,30 @@ function Cutting() {
 
               <div className="input-group">
                 <label>Total Cut Weight (kg) *</label>
-                <input
-                  type="number"
-                  step="0.001"
-                  name="totalCutWeight"
-                  value={formData.totalCutWeight}
-                  onChange={handleInputChange}
-                  placeholder="0.520"
-                  required
-                />
-                <small className="help-text">Weight per piece including losses</small>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input
+                    type="number"
+                    step="0.001"
+                    name="totalCutWeight"
+                    value={formData.totalCutWeight}
+                    onChange={handleInputChange}
+                    placeholder="0.520"
+                    required
+                    style={{ flex: 1 }}
+                  />
+                  {/* NEW: quick compute button */}
+                  
+                </div>
+                
+                <small className="help-text">Weight per piece including end piece and bhuki (if circular)</small>
+                <button
+                    type="button"
+                    className="small-btn"
+                    title="Compute from min/max + end + bhuki"
+                    onClick={() => computeTotalCutWeightFromParts()}
+                  >
+                    ⚙️ Compute
+                  </button>
               </div>
 
               <div className="input-group">
@@ -799,6 +869,17 @@ function Cutting() {
                   onChange={handleInputChange}
                   placeholder="0.010"
                   required
+                />
+              </div>
+              <div className="input-group">
+                <label>Remarks</label>
+                <textarea
+                  name="remarks"
+                  value={formData.remarks}
+                  onChange={handleInputChange}
+                  placeholder="Add remarks (optional)"
+                  rows="3"
+                  className="input-field"
                 />
               </div>
 
@@ -818,6 +899,14 @@ function Cutting() {
                 </div>
               )}
             </div>
+
+            {/* Inline immediate stock warning (before calculation) */}
+            {selectedStock && requiredSteelForTarget > (selectedStock.quantity || 0) && (
+              <div className="warning-box">
+                ⚠️ Insufficient stock for the current target! Required: {requiredSteelForTarget.toFixed(3)} kg,
+                Available: {selectedStock.quantity.toFixed(2)} kg
+              </div>
+            )}
 
             {/* Calculate Button - Only show if not editing */}
             {!editingCutting && (
@@ -904,6 +993,7 @@ function Cutting() {
                     </div>
                   </div>
 
+                  {/* Calculation-based warning */}
                   {selectedStock && calculation.totalSteelUsed > selectedStock.quantity && (
                     <div className="warning-box">
                       ⚠️ Insufficient stock! Required: {calculation.totalSteelUsed} kg,
@@ -1005,6 +1095,10 @@ function Cutting() {
                   <div className="info-row">
                     <span>⚠️ Total Waste:</span>
                     <strong className="highlight-red">{cutting.calculations?.totalWaste?.toFixed(3) || 0} kg</strong>
+                  </div>
+                  <div className="info-row">
+                    <span>Remarks: </span>
+                    <strong className="highlight-black">{cutting.remarks || 'No remarks'}</strong>
                   </div>
                 </div>
 

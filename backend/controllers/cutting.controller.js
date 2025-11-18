@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Cutting from '../models/Cutting.js';
 import IncomingStock from '../models/IncomingStock.js';
 
@@ -18,7 +19,7 @@ export const calculateCutting = async (req, res) => {
     const avgCutWeight = (cuttingWeightMin + cuttingWeightMax) / 2;
 
     // Steel used for cutting pieces
-    const steelUsedForPieces = Number((targetPieces * totalCutWeight).toFixed(3));
+    const steelUsedForPieces = Number((targetPieces * avgCutWeight).toFixed(3));
 
     // End piece used
     const endPieceUsed = Number((targetPieces * endPieceWeight).toFixed(3));
@@ -109,7 +110,7 @@ export const getCuttingByType = async (req, res) => {
 // @route   POST /api/cutting
 export const createCutting = async (req, res) => {
   try {
-    const { stockId, targetPieces, totalCutWeight } = req.body;
+    const { stockId, targetPieces, avgCutWeight, remarks } = req.body;
 
     // Verify stock exists and has enough quantity
     const stock = await IncomingStock.findById(stockId);
@@ -122,10 +123,10 @@ export const createCutting = async (req, res) => {
 
     // Calculate total steel needed
     const calculations = req.body;
-    const steelUsed = targetPieces * totalCutWeight;
+    const steelUsed = targetPieces * avgCutWeight;
     const endPieceUsed = targetPieces * (req.body.endPieceWeight || 0.010);
-    const scrapUsed = req.body.cuttingType === 'CIRCULAR' 
-      ? targetPieces * (req.body.bhukiWeight || 0.010) 
+    const scrapUsed = req.body.cuttingType === 'CIRCULAR'
+      ? targetPieces * (req.body.bhukiWeight || 0.010)
       : 0;
     const totalSteelNeeded = steelUsed + endPieceUsed + scrapUsed;
 
@@ -141,7 +142,10 @@ export const createCutting = async (req, res) => {
     req.body.colorCode = stock.colorCode;
 
     // Create cutting record
-    const cutting = await Cutting.create(req.body);
+    const cutting = await Cutting.create({
+      ...req.body,
+      remarks // Add remarks
+    });
 
     // Update stock quantity
     stock.quantity = Number((stock.quantity - cutting.calculations.totalSteelUsed).toFixed(3));
@@ -177,7 +181,7 @@ export const createCutting = async (req, res) => {
 export const getCuttingByMonth = async (req, res) => {
   try {
     const { year, month } = req.params;
-    
+
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59);
 
@@ -187,8 +191,8 @@ export const getCuttingByMonth = async (req, res) => {
         $lte: endDate
       }
     })
-    .populate('stockId')
-    .sort({ date: -1 });
+      .populate('stockId')
+      .sort({ date: -1 });
 
     res.status(200).json({
       success: true,
@@ -233,7 +237,7 @@ export const getMonthlyCuttingStats = async (req, res) => {
           monthName: {
             $arrayElemAt: [
               ['', 'January', 'February', 'March', 'April', 'May', 'June',
-               'July', 'August', 'September', 'October', 'November', 'December'],
+                'July', 'August', 'September', 'October', 'November', 'December'],
               '$_id.month'
             ]
           },
@@ -294,6 +298,7 @@ export const deleteCutting = async (req, res) => {
     });
   }
 };
+
 
 export default {
   calculateCutting,

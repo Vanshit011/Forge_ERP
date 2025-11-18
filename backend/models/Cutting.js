@@ -65,31 +65,33 @@ const cuttingSchema = new mongoose.Schema({
     type: Number,
     default: 0.010
   },
+  remarks: {
+    type: String,
+    default: '' // This is usually fine for String
+  },
+    calculations: {
+      type: {
+        steelUsedForPieces: Number,
+        endPieceUsed: Number,
+        scrapUsed: Number,
+        totalSteelUsed: Number,
+        totalPieces: Number,
+        totalWaste: Number,
+        totalBhuki: Number
+      },
+      default: {}
+    }
+  }, {
+    timestamps: true
+  });
 
-  calculations: {
-    type: {
-      steelUsedForPieces: Number,
-      endPieceUsed: Number,
-      scrapUsed: Number,
-      totalSteelUsed: Number,
-      totalPieces: Number,
-      totalWaste: Number,
-      totalBhuki: Number
-    },
-    default: {}
-  }
-
-}, {
-  timestamps: true
-});
-
-cuttingSchema.pre('save', function(next) {
+cuttingSchema.pre('save', function (next) {
   try {
     this.calculations = this.calculations || {};
-    
+
     this.calculations.steelUsedForPieces = Number((this.targetPieces * this.totalCutWeight).toFixed(3));
     this.calculations.endPieceUsed = Number((this.targetPieces * this.endPieceWeight).toFixed(3));
-    
+
     if (this.cuttingType === 'CIRCULAR') {
       this.calculations.scrapUsed = Number((this.targetPieces * this.bhukiWeight).toFixed(3));
       this.calculations.totalBhuki = this.calculations.scrapUsed;
@@ -97,19 +99,19 @@ cuttingSchema.pre('save', function(next) {
       this.calculations.scrapUsed = 0;
       this.calculations.totalBhuki = 0;
     }
-    
+
     this.calculations.totalSteelUsed = Number((
-      this.calculations.steelUsedForPieces + 
-      this.calculations.endPieceUsed + 
+      this.calculations.steelUsedForPieces +
+      this.calculations.endPieceUsed +
       this.calculations.scrapUsed
     ).toFixed(3));
-    
+
     this.calculations.totalPieces = this.targetPieces;
     this.calculations.totalWaste = Number((
-      this.calculations.endPieceUsed + 
+      this.calculations.endPieceUsed +
       this.calculations.scrapUsed
     ).toFixed(3));
-    
+
     next();
   } catch (error) {
     next(error);

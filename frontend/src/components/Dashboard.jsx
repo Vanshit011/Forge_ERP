@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import '../styles/Dashboard.css';
 
-const API_URL = 'https://forge-erp.vercel.app/api';
+const API_URL = 'http://localhost:5000/api';
 
 function Dashboard() {
   const [stats, setStats] = useState({
@@ -203,7 +203,7 @@ function Dashboard() {
               </div>
               <div className="detail-item warning">
                 <span className="detail-label">⚠️ Total Waste:</span>
-                <span className="detail-value">{(stats.sharingWaste + stats.circularWaste).toFixed(2)} kg</span>
+                <span className="detail-value">{(stats.sharingWaste ).toFixed(2)} kg</span>
               </div>
             </div>
           </div>

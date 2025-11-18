@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import '../styles/Login.css';
 
-const API_URL = 'https://forge-erp.vercel.app/api';
+const API_URL = ' http://localhost:5000/api';
 
 function Login() {
   const navigate = useNavigate();

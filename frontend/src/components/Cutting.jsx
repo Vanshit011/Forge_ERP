@@ -547,7 +547,7 @@ function Cutting() {
           <span className="tab-icon">🔧</span>
           <div className="tab-content">
             <span className="tab-title">Sharing</span>
-            <span className="tab-count">{cuttings.filter(c=>c.cuttingType==='SHARING').length} ops</span>
+            <span className="tab-count">{cuttings.filter(c => c.cuttingType === 'SHARING').length} ops</span>
           </div>
         </button>
         <button
@@ -557,7 +557,7 @@ function Cutting() {
           <span className="tab-icon">⭕</span>
           <div className="tab-content">
             <span className="tab-title">Circular</span>
-            <span className="tab-count">{cuttings.filter(c=>c.cuttingType==='CIRCULAR').length} ops</span>
+            <span className="tab-count">{cuttings.filter(c => c.cuttingType === 'CIRCULAR').length} ops</span>
           </div>
         </button>
       </div>
@@ -574,45 +574,20 @@ function Cutting() {
                 onClick={() => stock.operations > 0 && handleStockCardClick(stock)}
                 style={{ cursor: stock.operations > 0 ? 'pointer' : 'default' }}
               >
-                {/* Card Header with Delete Button */}
-                <div className="card-top-actions">
-                  <div
-                    className="material-cutting-header"
-                    style={{ borderColor: getColorStyle(stock.colorCode) }}
-                  >
-                    <span
-                      className="material-dot-cutting"
-                      style={{ backgroundColor: getColorStyle(stock.colorCode) }}
-                    ></span>
-                    <div className="material-header-info">
-                      <h3>{stock.material}</h3>
-                      <div className="stock-badge-group">
-                        <span className="diameter-badge">{stock.dia} mm</span>
-                        {stock.avgCutWeight > 0 && (
-                          <span className="cutweight-badge">{stock.avgCutWeight} kg/pc</span>
-                        )}
-                        {stock.stockQuantity > 0 && (
-                          <span className="available-badge">{stock.stockQuantity} kg</span>
-                        )}
-                      </div>
-                    </div>
+                {/* Card Header */}
+                <div className="material-cutting-header" style={{ borderColor: getColorStyle(stock.colorCode) }}>
+                  <span className="material-dot-cutting" style={{ backgroundColor: getColorStyle(stock.colorCode) }}></span>
+                  <div className="material-header-info">
+                    <h3>{stock.material}</h3>
+                    <span className="diameter-badge">{stock.dia} mm</span>
+                    {stock.avgCutWeight > 0 && (
+                      <span className="cutweight-badge">{stock.avgCutWeight} kg/pc</span>
+                    )}
+                    {stock.stockQuantity > 0 && (
+                      <span className="available-badge">{stock.stockQuantity} kg</span>
+                    )}
                   </div>
-
-                  {/* Delete Button */}
-                  {stock.operations > 0 && (
-                    <button
-                      className="delete-stock-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteStock(stock.stockId);
-                      }}
-                      title="Delete all operations for this stock"
-                    >
-                      🗑️
-                    </button>
-                  )}
                 </div>
-
                 {/* Stats */}
                 <div className="material-cutting-stats">
                   <div className="cutting-stat-item">
@@ -637,18 +612,15 @@ function Cutting() {
                     </div>
                   </div>
                 </div>
-
-                {stock.operations > 0 && (
-                  <div className="card-hint">👆 Click to see details</div>
-                )}
-                {stock.operations === 0 && (
-                  <div className="card-no-ops">No operations yet</div>
-                )}
+                {/* Footer */}
+                {stock.operations > 0 && <div className="card-hint">👆 Click to see details</div>}
+                {stock.operations === 0 && <div className="card-no-ops">No operations yet</div>}
               </div>
             ))}
           </div>
         </div>
       )}
+
 
       {/* Overall Stats */}
       <div className="cutting-stats">
@@ -845,18 +817,18 @@ function Cutting() {
                     style={{ flex: 1 }}
                   />
                   {/* NEW: quick compute button */}
-                  
+
                 </div>
-                
+
                 <small className="help-text">Weight per piece including end piece and bhuki (if circular)</small>
                 <button
-                    type="button"
-                    className="small-btn"
-                    title="Compute from min/max + end + bhuki"
-                    onClick={() => computeTotalCutWeightFromParts()}
-                  >
-                    ⚙️ Compute
-                  </button>
+                  type="button"
+                  className="small-btn"
+                  title="Compute from min/max + end + bhuki"
+                  onClick={() => computeTotalCutWeightFromParts()}
+                >
+                  ⚙️ Compute
+                </button>
               </div>
 
               <div className="input-group">

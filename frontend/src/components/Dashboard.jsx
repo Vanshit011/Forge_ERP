@@ -448,7 +448,7 @@ function Dashboard() {
             <div className="flow-box">
               <div className="flow-number">{stats.totalPieces}</div>
               <div className="flow-label">Pieces Cut</div>
-              <div className="flow-sub">Waste: {(stats.sharingWaste + stats.circularWaste + stats.endPieceWaste + stats.totalBhuki).toFixed(2)} kg</div>
+              <div className="flow-sub">Waste: {(stats.sharingWaste + stats.circularWaste).toFixed(2)} kg</div>
             </div>
           </div>
 

@@ -1,125 +1,61 @@
 import mongoose from 'mongoose';
 
 const cuttingSchema = new mongoose.Schema({
-  stockId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'IncomingStock',
-    required: true
-  },
-
-  cuttingType: {
-    type: String,
-    enum: ['SHARING', 'CIRCULAR'],
-    required: true,
-    uppercase: true
-  },
-
-  date: {
-    type: Date,
-    required: true,
-    default: Date.now
-  },
-
-  partName: {
-    type: String,
-    required: true,
-    trim: true
-  },
-
+  stockId: { type: mongoose.Schema.Types.ObjectId, ref: 'IncomingStock', required: true },
+  cuttingType: { type: String, enum: ['SHARING', 'CIRCULAR'], required: true },
+  date: { type: Date, default: Date.now },
+  partName: { type: String, required: true },
   material: String,
   colorCode: String,
+  dia: { type: Number, required: true },
+  targetPieces: { type: Number, required: true },
+  cuttingWeightMin: Number,
+  cuttingWeightMax: Number,
+  
+  // Store both weights to avoid confusion
+  avgCutWeight: Number,   // Net (0.50)
+  totalCutWeight: Number, // Gross (0.51) - This is what user calls "Final Cut Weight"
 
-  dia: {
-    type: Number,
-    required: true
-  },
+  endPieceWeight: Number,
+  bhukiWeight: Number,
+  remarks: String,
 
-  targetPieces: {
-    type: Number,
-    required: true,
-    min: 1
-  },
-
-  cuttingWeightMin: {
-    type: Number,
-    default: 0.495
-  },
-
-  cuttingWeightMax: {
-    type: Number,
-    default: 0.505
-  },
-
-  totalCutWeight: {
-    type: Number,
-    required: true,
-    default: 0.520
-  },
-
-  endPieceWeight: {
-    type: Number,
-    default: 0.010
-  },
-
-  bhukiWeight: {
-    type: Number,
-    default: 0.010
-  },
-  remarks: {
-    type: String,
-    default: '' // This is usually fine for String
-  },
-    calculations: {
-      type: {
-        steelUsedForPieces: Number,
-        endPieceUsed: Number,
-        scrapUsed: Number,
-        totalSteelUsed: Number,
-        totalPieces: Number,
-        totalWaste: Number,
-        totalBhuki: Number
-      },
-      default: {}
-    }
-  }, {
-    timestamps: true
-  });
+  calculations: {
+    steelUsedForPieces: Number,
+    endPieceUsed: Number,
+    scrapUsed: Number,
+    totalSteelUsed: Number,
+    totalPieces: Number,
+    totalWaste: Number,
+    totalBhuki: Number
+  }
+}, { timestamps: true });
 
 cuttingSchema.pre('save', function (next) {
-  try {
+  // Only run calculation logic if the Controller didn't already provide it
+  if (!this.calculations || !this.calculations.totalSteelUsed) {
     this.calculations = this.calculations || {};
-
-    this.calculations.steelUsedForPieces = Number((this.targetPieces * this.totalCutWeight).toFixed(3));
+    
+    // Use avgCutWeight (0.50) for piece calculation, NOT totalCutWeight (0.51)
+    // If avgCutWeight is missing, calculate it from min/max
+    const netWeight = this.avgCutWeight || ((this.cuttingWeightMin + this.cuttingWeightMax) / 2);
+    
+    this.calculations.steelUsedForPieces = Number((this.targetPieces * netWeight).toFixed(3));
     this.calculations.endPieceUsed = Number((this.targetPieces * this.endPieceWeight).toFixed(3));
-
+    
     if (this.cuttingType === 'CIRCULAR') {
       this.calculations.scrapUsed = Number((this.targetPieces * this.bhukiWeight).toFixed(3));
-      this.calculations.totalBhuki = this.calculations.scrapUsed;
     } else {
       this.calculations.scrapUsed = 0;
-      this.calculations.totalBhuki = 0;
     }
 
-    this.calculations.totalSteelUsed = Number((
-      this.calculations.steelUsedForPieces +
-      this.calculations.endPieceUsed +
-      this.calculations.scrapUsed
-    ).toFixed(3));
-
+    this.calculations.totalWaste = this.calculations.endPieceUsed + this.calculations.scrapUsed;
+    
+    // Total = Piece Steel + Waste
+    this.calculations.totalSteelUsed = Number((this.calculations.steelUsedForPieces + this.calculations.totalWaste).toFixed(3));
     this.calculations.totalPieces = this.targetPieces;
-    this.calculations.totalWaste = Number((
-      this.calculations.endPieceUsed +
-      this.calculations.scrapUsed
-    ).toFixed(3));
-
-    next();
-  } catch (error) {
-    next(error);
   }
+  next();
 });
-
-cuttingSchema.index({ stockId: 1, date: -1 });
-cuttingSchema.index({ cuttingType: 1, date: -1 });
-cuttingSchema.index({ date: -1 });
 
 export default mongoose.model('Cutting', cuttingSchema);

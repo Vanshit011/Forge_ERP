@@ -90,7 +90,8 @@ export const getCuttingByType = async (req, res) => {
     const { type } = req.params;
     const cuttings = await Cutting.find({ cuttingType: type.toUpperCase() })
       .populate('stockId')
-      .sort({ date: -1 });
+      // Sort by Date Descending (-1), then by CreatedAt Descending (-1)
+      .sort({ date: -1, createdAt: -1 });
 
     res.status(200).json({
       success: true,
@@ -110,45 +111,78 @@ export const getCuttingByType = async (req, res) => {
 // @route   POST /api/cutting
 export const createCutting = async (req, res) => {
   try {
-    const { stockId, targetPieces, avgCutWeight, remarks } = req.body;
+    const {
+      stockId,
+      targetPieces,
+      cuttingType,
+      cuttingWeightMin,
+      cuttingWeightMax,
+      endPieceWeight,
+      bhukiWeight,
+      remarks
+    } = req.body;
 
-    // Verify stock exists and has enough quantity
+    // 1. Verify Stock
     const stock = await IncomingStock.findById(stockId);
-    if (!stock) {
-      return res.status(404).json({
-        success: false,
-        message: 'Stock not found'
-      });
+    if (!stock) return res.status(404).json({ success: false, message: 'Stock not found' });
+
+    // 2. STRICT CALCULATIONS (The Fix)
+
+    // Step A: Calculate Net Weight (Average of Min/Max) -> 0.500
+    const netAvgWeight = (Number(cuttingWeightMin) + Number(cuttingWeightMax)) / 2;
+
+    // Step B: Calculate Waste per piece -> 0.010
+    let wastePerPiece = Number(endPieceWeight);
+    if (cuttingType === 'CIRCULAR') {
+      wastePerPiece += Number(bhukiWeight);
     }
 
-    // Calculate total steel needed
-    const calculations = req.body;
-    const steelUsed = targetPieces * avgCutWeight;
-    const endPieceUsed = targetPieces * (req.body.endPieceWeight || 0.010);
-    const scrapUsed = req.body.cuttingType === 'CIRCULAR'
-      ? targetPieces * (req.body.bhukiWeight || 0.010)
-      : 0;
-    const totalSteelNeeded = steelUsed + endPieceUsed + scrapUsed;
+    // Step C: Calculate Final Gross Weight (Net + Waste) -> 0.510
+    const finalGrossWeight = netAvgWeight + wastePerPiece;
 
-    if (stock.quantity < totalSteelNeeded) {
+    // Step D: Calculate Total Steel -> 2000 * 0.510 = 1020
+    const totalSteelUsed = Number((targetPieces * finalGrossWeight).toFixed(3));
+
+    // 3. Verify Stock Availability
+    if (stock.quantity < totalSteelUsed) {
       return res.status(400).json({
         success: false,
-        message: `Insufficient stock. Available: ${stock.quantity} kg, Required: ${totalSteelNeeded} kg`
+        message: `Insufficient stock. Available: ${stock.quantity} kg, Required: ${totalSteelUsed} kg`
       });
     }
 
-    // Auto-fill material and color from stock
-    req.body.material = stock.material;
-    req.body.colorCode = stock.colorCode;
+    // 4. Prepare Data for Model
+    // We manually calculate the breakdown so the Model doesn't have to guess
+    const steelUsedForPieces = Number((targetPieces * netAvgWeight).toFixed(3)); // 1000 kg
+    const endPieceUsed = Number((targetPieces * endPieceWeight).toFixed(3));     // 20 kg
+    const scrapUsed = cuttingType === 'CIRCULAR' ? Number((targetPieces * bhukiWeight).toFixed(3)) : 0;
+    const totalWaste = Number((endPieceUsed + scrapUsed).toFixed(3));            // 20 kg
 
-    // Create cutting record
     const cutting = await Cutting.create({
       ...req.body,
-      remarks // Add remarks
+      material: stock.material,
+      colorCode: stock.colorCode,
+
+      // CRITICAL FIX: We save the NET weight (0.50) as avgCutWeight
+      // And we save 0.510 as totalCutWeight if you want to see the Gross value
+      avgCutWeight: Number(netAvgWeight.toFixed(3)),
+      totalCutWeight: Number(finalGrossWeight.toFixed(3)), // 0.510
+
+      // Pass explicit calculations to override any Schema defaults
+      calculations: {
+        steelUsedForPieces, // 1000
+        endPieceUsed,       // 20
+        scrapUsed,
+        totalBhuki: scrapUsed,
+        totalWaste,         // 20
+        totalSteelUsed,     // 1020
+        totalPieces: targetPieces
+      },
+      remarks
     });
 
-    // Update stock quantity
-    stock.quantity = Number((stock.quantity - cutting.calculations.totalSteelUsed).toFixed(3));
+    // 5. Update Stock
+    stock.quantity = Number((stock.quantity - totalSteelUsed).toFixed(3));
     await stock.save();
 
     await cutting.populate('stockId');
@@ -158,21 +192,9 @@ export const createCutting = async (req, res) => {
       message: 'Cutting record created successfully',
       data: cutting
     });
-  } catch (error) {
-    if (error.name === 'ValidationError') {
-      const errors = Object.values(error.errors).map(err => err.message);
-      return res.status(400).json({
-        success: false,
-        message: 'Validation error',
-        errors: errors
-      });
-    }
 
-    res.status(400).json({
-      success: false,
-      message: 'Error creating cutting record',
-      error: error.message
-    });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
   }
 };
 

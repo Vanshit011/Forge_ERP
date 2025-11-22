@@ -21,6 +21,7 @@ function Forging() {
     forgingQty: '',
     forgingRingWeight: '',
     rejectionQty: '0',
+    remarks: '', // <--- ADD THIS
     forgingResults: {
       babariPerPiece: '0.010',
       scrapPieces: '0',
@@ -37,7 +38,21 @@ function Forging() {
   const fetchForgings = async () => {
     try {
       const response = await axios.get(`${API_URL}/forging`);
-      setForgings(response.data.data || []);
+      const rawData = response.data.data || [];
+
+      // SORTING LOGIC: Date (Newest first) -> Created Time (Newest first)
+      const sortedData = rawData.sort((a, b) => {
+        // 1. Compare Dates
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        if (dateB - dateA !== 0) {
+          return dateB - dateA;
+        }
+        // 2. If Dates are equal, sort by ID (newest created first)
+        return b._id.localeCompare(a._id);
+      });
+
+      setForgings(sortedData);
     } catch (error) {
       console.error('Error fetching forgings:', error);
     }
@@ -46,7 +61,12 @@ function Forging() {
   const fetchAvailableCuttingRecords = async () => {
     try {
       const response = await axios.get(`${API_URL}/forging/available/cutting-records`);
-      setCuttingRecords(response.data.data || []);
+
+      // UPDATED: Filter out records where availablePieces is 0
+      const allRecords = response.data.data || [];
+      const availableOnly = allRecords.filter(record => record.availablePieces > 0);
+
+      setCuttingRecords(availableOnly);
     } catch (error) {
       console.error('Error fetching cutting records:', error);
     }
@@ -129,6 +149,7 @@ function Forging() {
         forgingQty: parseInt(formData.forgingQty),
         forgingRingWeight: parseFloat(formData.forgingRingWeight),
         rejectionQty: parseInt(formData.rejectionQty),
+        remarks: formData.remarks, // <--- ADD THIS
         forgingResults: {
           babariPerPiece: parseFloat(formData.forgingResults.babariPerPiece),
           scrapPieces: parseInt(formData.forgingResults.scrapPieces),
@@ -188,6 +209,7 @@ function Forging() {
       forgingQty: '',
       forgingRingWeight: '',
       rejectionQty: '0',
+      remarks: '', // <--- ADD THIS
       forgingResults: {
         babariPerPiece: '0.010',
         scrapPieces: '0',
@@ -649,6 +671,19 @@ function Forging() {
                 />
                 <small className="help-text">Auto-calculated</small>
               </div>
+
+              <div className="input-group">
+                <label>Remarks</label>
+                <textarea
+                  name="remarks"
+                  value={formData.remarks}
+                  onChange={handleInputChange}
+                  placeholder="Add remarks (optional)"
+                  rows="3"
+                  className="input-field" // Make sure to use your CSS class
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+                />
+              </div>
             </div>
 
             <button
@@ -745,6 +780,11 @@ function Forging() {
                   <div className="info-row">
                     <span>♻️ Babari/Pc:</span>
                     <strong>{forging.forgingResults?.babariPerPiece?.toFixed(3)} kg</strong>
+                  </div>
+                  {/* ADD THIS ROW */}
+                  <div className="info-row">
+                    <span>📝 Remarks:</span>
+                    <strong style={{ color: '#333' }}>{forging.remarks || 'No remarks'}</strong>
                   </div>
                 </div>
 

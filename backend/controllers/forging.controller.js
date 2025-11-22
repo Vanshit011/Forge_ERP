@@ -8,7 +8,8 @@ export const getAllForging = async (req, res) => {
   try {
     const forgings = await Forging.find()
       .populate('cuttingId', 'partName dia material colorCode cuttingType')
-      .sort({ date: -1 });
+      // Sort by Date Descending (-1), then by CreatedAt Descending (-1)
+      .sort({ date: -1, createdAt: -1 });
 
     res.status(200).json({
       success: true,

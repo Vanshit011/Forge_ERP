@@ -14,7 +14,7 @@ function IncomingStock() {
   const [editingStock, setEditingStock] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   // NEW: States for diameter breakdown modal
   const [showDiaBreakdown, setShowDiaBreakdown] = useState(false);
   const [selectedMaterialForBreakdown, setSelectedMaterialForBreakdown] = useState(null);
@@ -49,13 +49,28 @@ function IncomingStock() {
 
   const fetchStocks = async () => {
     try {
-      setLoading(true);
       const response = await axios.get(`${API_URL}/incoming-stock`);
-      setStocks(response.data.data || []);
-      setLoading(false);
+      const rawData = response.data.data || [];
+
+      // SORTING LOGIC: Date (Newest first) -> Created Time (Newest first)
+      const sortedData = rawData.sort((a, b) => {
+        // 1. Compare Dates
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+
+        // If dates are different, sort by date
+        if (dateB - dateA !== 0) {
+          return dateB - dateA;
+        }
+
+        // 2. If Dates are equal, sort by ID (newest created first)
+        // This ensures the one you just added appears at the top
+        return b._id.localeCompare(a._id);
+      });
+
+      setStocks(sortedData);
     } catch (error) {
       console.error('Error fetching stocks:', error);
-      setLoading(false);
     }
   };
 
@@ -236,13 +251,13 @@ function IncomingStock() {
           <div className="diameter-breakdown-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>
-                <span 
+                <span
                   className="material-dot-large"
                   style={{ backgroundColor: getColorStyle(selectedMaterialColor) }}
                 ></span>
                 {selectedMaterialForBreakdown} - Diameter Breakdown
               </h2>
-              <button 
+              <button
                 className="close-modal-btn"
                 onClick={() => setShowDiaBreakdown(false)}
               >
@@ -277,9 +292,9 @@ function IncomingStock() {
                         </span>
                       </div>
                       <div className="diameter-progress-bar-mini">
-                        <div 
+                        <div
                           className="diameter-progress-fill-mini"
-                          style={{ 
+                          style={{
                             width: `${totalForSelectedMaterial > 0 ? (item.totalQuantity / totalForSelectedMaterial) * 100 : 0}%`,
                             backgroundColor: getColorStyle(selectedMaterialColor)
                           }}
@@ -354,8 +369,8 @@ function IncomingStock() {
             </div>
           ) : (
             materialData.map((mat) => (
-              <div 
-                key={mat.material} 
+              <div
+                key={mat.material}
                 className="material-bar-item clickable"
                 onClick={() => handleMaterialBarClick(mat.material)}
               >

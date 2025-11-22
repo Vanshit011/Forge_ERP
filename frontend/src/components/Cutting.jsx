@@ -8,6 +8,11 @@ function Cutting() {
   const [activeTab, setActiveTab] = useState('sharing');
   const [stocks, setStocks] = useState([]);
   const [cuttings, setCuttings] = useState([]);
+
+  // --- FIX START: Added missing state ---
+  const [availableForForging, setAvailableForForging] = useState([]);
+  // --- FIX END ---
+
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [calculation, setCalculation] = useState(null);
@@ -16,7 +21,6 @@ function Cutting() {
   const [selectedMaterialForBreakdown, setSelectedMaterialForBreakdown] = useState(null);
   const [editingCutting, setEditingCutting] = useState(null);
 
-  // NEW: derived values
   const [availablePieces, setAvailablePieces] = useState(0);
   const [requiredSteelForTarget, setRequiredSteelForTarget] = useState(0);
 
@@ -34,12 +38,15 @@ function Cutting() {
     totalCutWeight: '0.520',
     endPieceWeight: '0.010',
     bhukiWeight: '0.010',
-    remarks: '' // Added remarks field
+    remarks: ''
   });
 
   useEffect(() => {
     fetchStocks();
     fetchCuttings();
+    // --- FIX START: Fetch the data ---
+    fetchAvailableForForging();
+    // --- FIX END ---
   }, [activeTab]);
 
   useEffect(() => {
@@ -51,13 +58,12 @@ function Cutting() {
     return () => window.removeEventListener('triggerAddNew', handleTriggerAdd);
   }, []);
 
-  // NEW: Recompute derived values when relevant inputs change
+  // Derived values for Steel Calculation
   useEffect(() => {
     const totalCutWeight = parseFloat(formData.totalCutWeight) || 0;
     const targetPieces = parseInt(formData.targetPieces, 10) || 0;
 
     if (selectedStock && totalCutWeight > 0) {
-      // pieces we can cut from selected stock (floor)
       const pieces = Math.floor(selectedStock.quantity / totalCutWeight);
       setAvailablePieces(pieces);
     } else {
@@ -68,11 +74,36 @@ function Cutting() {
     setRequiredSteelForTarget(required);
   }, [selectedStock, formData.totalCutWeight, formData.targetPieces]);
 
+  // Auto-calculate Bhuki
+  useEffect(() => {
+    if (formData.cuttingType === 'CIRCULAR' && formData.dia) {
+      const diameter = parseFloat(formData.dia);
+
+      if (!isNaN(diameter) && diameter > 0) {
+        const calculatedBhuki = (diameter * diameter * 2 * 0.00000618).toFixed(3);
+
+        setFormData(prev => {
+          if (prev.bhukiWeight !== calculatedBhuki) {
+            return { ...prev, bhukiWeight: calculatedBhuki };
+          }
+          return prev;
+        });
+      }
+    }
+  }, [formData.cuttingType, formData.dia]);
+
   const fetchStocks = async () => {
     try {
       const response = await axios.get(`${API_URL}/incoming-stock`);
-      const availableStocks = (response.data.data || []).filter(s => s.quantity > 0);
-      setStocks(availableStocks);
+      // Sorting Logic
+      const rawData = (response.data.data || []).filter(s => s.quantity > 0.1);
+      const sortedData = rawData.sort((a, b) => {
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        if (dateB - dateA !== 0) return dateB - dateA;
+        return b._id.localeCompare(a._id);
+      });
+      setStocks(sortedData);
     } catch (error) {
       console.error('Error fetching stocks:', error);
     }
@@ -81,11 +112,32 @@ function Cutting() {
   const fetchCuttings = async () => {
     try {
       const response = await axios.get(`${API_URL}/cutting/type/${activeTab.toUpperCase()}`);
-      setCuttings(response.data.data || []);
+      const rawData = response.data.data || [];
+
+      // Sorting Logic
+      const sortedData = rawData.sort((a, b) => {
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        if (dateB - dateA !== 0) return dateB - dateA;
+        return b._id.localeCompare(a._id);
+      });
+
+      setCuttings(sortedData);
     } catch (error) {
       console.error('Error fetching cuttings:', error);
     }
   };
+
+  // --- FIX START: Add the fetch function definition ---
+  const fetchAvailableForForging = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/forging/available/cutting-records`);
+      setAvailableForForging(response.data.data || []);
+    } catch (error) {
+      console.error('Error fetching available for forging:', error);
+    }
+  };
+  // --- FIX END ---
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
@@ -113,7 +165,6 @@ function Cutting() {
         dia: stock.dia
       }));
     } else {
-      // reset if no selection
       setSelectedStock(null);
       setFormData(prev => ({ ...prev, stockId: '', material: '', colorCode: '', partName: '', dia: '' }));
     }
@@ -127,11 +178,9 @@ function Cutting() {
     }));
   };
 
-  // Helper: compute totalCutWeight from min/max, end piece and bhuki
   const computeTotalCutWeightFromParts = () => {
     const min = parseFloat(formData.cuttingWeightMin) || 0;
     const max = parseFloat(formData.cuttingWeightMax) || 0;
-    // average of min and max
     const avgCut = (min + max) / 2;
     const endPiece = parseFloat(formData.endPieceWeight) || 0;
     const bhuki = activeTab === 'circular' ? (parseFloat(formData.bhukiWeight) || 0) : 0;
@@ -188,7 +237,7 @@ function Cutting() {
         cuttingWeightMax: parseFloat(formData.cuttingWeightMax),
         totalCutWeight: parseFloat(formData.totalCutWeight),
         endPieceWeight: parseFloat(formData.endPieceWeight),
-        remarks: formData.remarks // Added remarks
+        remarks: formData.remarks
       };
 
       if (formData.cuttingType === 'CIRCULAR') {
@@ -221,10 +270,11 @@ function Cutting() {
         totalCutWeight: '0.520',
         endPieceWeight: '0.010',
         bhukiWeight: '0.010',
-        remarks: '' // Reset remarks
+        remarks: ''
       });
       fetchCuttings();
       fetchStocks();
+      fetchAvailableForForging(); // Refresh counts
       setLoading(false);
     } catch (error) {
       if (error.response?.data?.errors) {
@@ -253,7 +303,7 @@ function Cutting() {
       totalCutWeight: cutting.totalCutWeight?.toString() || '0',
       endPieceWeight: cutting.endPieceWeight?.toString() || '0',
       bhukiWeight: cutting.bhukiWeight?.toString() || '0.010',
-      remarks: cutting.remarks || '' // Load remarks
+      remarks: cutting.remarks || ''
     });
 
     const stock = stocks.find(s => s._id === cutting.stockId);
@@ -271,6 +321,7 @@ function Cutting() {
         alert('✅ Cutting record deleted successfully!');
         fetchCuttings();
         fetchStocks();
+        fetchAvailableForForging(); // Refresh counts
       } catch (error) {
         alert('❌ Error: ' + (error.response?.data?.message || error.message));
       }
@@ -296,7 +347,6 @@ function Cutting() {
           material: cutting.material,
           colorCode: cutting.colorCode,
           dia: cutting.dia,
-          totalCutWeight: cutting.totalCutWeight,
           totalPieces: 0,
           totalSteelUsed: 0,
           totalEndPiece: 0,
@@ -304,15 +354,20 @@ function Cutting() {
           operations: 0,
           stockQuantity: stock?.quantity || 0,
           partName: stock?.partName || cutting.partName,
-          totalCutWeightSum: 0
+          uniqueWeights: []
         };
       }
       acc[key].totalPieces += cutting.calculations?.totalPieces || 0;
       acc[key].totalSteelUsed += cutting.calculations?.totalSteelUsed || 0;
       acc[key].totalEndPiece += cutting.calculations?.endPieceUsed || 0;
       acc[key].totalWaste += cutting.calculations?.totalWaste || 0;
-      acc[key].totalCutWeightSum += (cutting.totalCutWeight || 0);
       acc[key].operations += 1;
+
+      const weight = cutting.totalCutWeight;
+      if (weight && !acc[key].uniqueWeights.includes(weight)) {
+        acc[key].uniqueWeights.push(weight);
+      }
+
       return acc;
     }, {});
 
@@ -324,7 +379,6 @@ function Cutting() {
           material: stock.material,
           colorCode: stock.colorCode,
           dia: stock.dia,
-          totalCutWeight: 0,
           totalPieces: 0,
           totalSteelUsed: 0,
           totalEndPiece: 0,
@@ -332,17 +386,30 @@ function Cutting() {
           operations: 0,
           stockQuantity: stock.quantity,
           partName: stock.partName,
-          totalCutWeightSum: 0
+          uniqueWeights: []
         };
       }
     });
 
     return Object.values(cuttingBreakdown)
-      .map(stock => ({
-        ...stock,
-        avgCutWeight: stock.operations > 0 ? (stock.totalCutWeightSum / stock.operations).toFixed(3) : 0
-      }))
-      .sort((a, b) => a.material.localeCompare(b.material));
+      .map(stock => {
+        const readyPieces = availableForForging
+          .filter(record => record.stockId === stock.stockId)
+          .reduce((sum, record) => sum + (record.availablePieces || 0), 0);
+
+        return {
+          ...stock,
+          readyForForging: readyPieces,
+          uniqueWeights: stock.uniqueWeights.sort((a, b) => a - b)
+        };
+      })
+      .sort((a, b) => {
+        const aRunning = a.operations > 0;
+        const bRunning = b.operations > 0;
+        if (aRunning && !bRunning) return -1;
+        if (!aRunning && bRunning) return 1;
+        return a.material.localeCompare(b.material);
+      });
   };
 
   const handleDeleteStock = async (stockId) => {
@@ -355,6 +422,7 @@ function Cutting() {
         alert('✅ All cutting operations deleted successfully!');
         fetchCuttings();
         fetchStocks();
+        fetchAvailableForForging();
       } catch (error) {
         alert('❌ Error: ' + (error.response?.data?.message || error.message));
       }
@@ -366,8 +434,14 @@ function Cutting() {
 
     return cuttings.filter(cutting => cutting.stockId === selectedMaterialForBreakdown.stockId)
       .map(cutting => ({
+        // Add ID for React keys
+        _id: cutting._id,
         partName: cutting.partName,
         targetPieces: cutting.targetPieces,
+
+        // 🚨 CRITICAL ADDITION: Pass the specific cut weight for this record
+        totalCutWeight: cutting.totalCutWeight,
+
         totalPieces: cutting.calculations?.totalPieces || 0,
         totalSteelUsed: cutting.calculations?.totalSteelUsed || 0,
         endPieceUsed: cutting.calculations?.endPieceUsed || 0,
@@ -375,8 +449,10 @@ function Cutting() {
         totalBhuki: cutting.calculations?.totalBhuki || 0,
         date: cutting.date,
         cuttingType: cutting.cuttingType,
-        remarks: cutting.remarks || '' // Include remarks
-      }));
+        remarks: cutting.remarks || ''
+      }))
+      // Sort by Date (Newest first)
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
   };
 
   const handleStockCardClick = (stock) => {
@@ -431,7 +507,9 @@ function Cutting() {
               ) : (
                 <div className="breakdown-list">
                   {getStockCuttingDetails().map((item, idx) => (
-                    <div key={idx} className="breakdown-item">
+                    <div key={item._id || idx} className="breakdown-item">
+
+                      {/* HEADER ROW */}
                       <div className="breakdown-item-header">
                         <div className="breakdown-info">
                           <span className="breakdown-icon">✂️</span>
@@ -440,8 +518,27 @@ function Cutting() {
                             <span className="breakdown-subtitle">{new Date(item.date).toLocaleDateString()}</span>
                           </div>
                         </div>
+
+                        {/* 🚨 NEW: DISTINCT CUT WEIGHT BADGE */}
+                        {/* This shows exactly which weight was used for this batch */}
+                        <div style={{ textAlign: 'right' }}>
+                          <span
+                            className="cutweight-badge"
+                            style={{
+                              fontSize: '0.85rem',
+                              padding: '4px 8px',
+                              backgroundColor: '#eff6ff',
+                              color: '#2563eb',
+                              borderRadius: '6px',
+                              fontWeight: '600'
+                            }}
+                          >
+                            ⚖️ {item.totalCutWeight} kg
+                          </span>
+                        </div>
                       </div>
 
+                      {/* METRICS ROW */}
                       <div className="breakdown-metrics">
                         <div className="metric-box">
                           <span className="metric-icon">🎯</span>
@@ -488,6 +585,13 @@ function Cutting() {
                           </div>
                         )}
                       </div>
+
+                      {/* REMARKS ROW (Optional) */}
+                      {item.remarks && (
+                        <div style={{ marginTop: '8px', fontSize: '0.85rem', color: '#666', paddingLeft: '4px' }}>
+                          📝 {item.remarks}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -570,9 +674,13 @@ function Cutting() {
             {stockWiseBreakdown.map((stock) => (
               <div
                 key={stock.stockId}
-                className={`material-cutting-card ${stock.operations > 0 ? 'clickable' : 'disabled'}`}
+                className={`material-cutting-card ${stock.operations > 0 ? 'clickable running' : 'disabled'}`}
                 onClick={() => stock.operations > 0 && handleStockCardClick(stock)}
-                style={{ cursor: stock.operations > 0 ? 'pointer' : 'default' }}
+                style={{
+                  cursor: stock.operations > 0 ? 'pointer' : 'default',
+                  border: stock.operations > 0 ? '1px solid #cbd5e1' : '1px dashed #e2e8f0',
+                  opacity: stock.operations > 0 ? 1 : 0.7
+                }}
               >
                 {/* Card Header */}
                 <div className="material-cutting-header" style={{ borderColor: getColorStyle(stock.colorCode) }}>
@@ -580,14 +688,24 @@ function Cutting() {
                   <div className="material-header-info">
                     <h3>{stock.material}</h3>
                     <span className="diameter-badge">{stock.dia} mm</span>
-                    {stock.avgCutWeight > 0 && (
-                      <span className="cutweight-badge">{stock.avgCutWeight} kg/pc</span>
+
+                    {/* DISTINCT CUT WEIGHTS */}
+                    {stock.uniqueWeights.length > 0 && (
+                      <div className="cut-weights-list">
+                        {stock.uniqueWeights.map((wt, i) => (
+                          <span key={i} className="cutweight-badge" style={{ marginRight: '4px', marginBottom: '4px' }}>
+                            {wt} kg
+                          </span>
+                        ))}
+                      </div>
                     )}
+
                     {stock.stockQuantity > 0 && (
                       <span className="available-badge">{stock.stockQuantity} kg</span>
                     )}
                   </div>
                 </div>
+
                 {/* Stats */}
                 <div className="material-cutting-stats">
                   <div className="cutting-stat-item">
@@ -597,21 +715,24 @@ function Cutting() {
                       <p className="stat-label-small">Pieces Cut</p>
                     </div>
                   </div>
+
+                  <div className="cutting-stat-item">
+                    <span className="stat-icon-small">⚠️</span>
+                    <div>
+                      <p className="stat-value-small text-blue">{stock.totalWaste}</p>
+                      <p className="stat-label-small">totalWaste (Kg)</p>
+                    </div>
+                  </div>
+
                   <div className="cutting-stat-item">
                     <span className="stat-icon-small">⚖️</span>
                     <div>
                       <p className="stat-value-small">{stock.totalSteelUsed.toFixed(2)} kg</p>
-                      <p className="stat-label-small">Steel Used</p>
-                    </div>
-                  </div>
-                  <div className="cutting-stat-item">
-                    <span className="stat-icon-small">⚠️</span>
-                    <div>
-                      <p className="stat-value-small">{stock.totalWaste.toFixed(2)} kg</p>
-                      <p className="stat-label-small">Total Waste</p>
+                      <p className="stat-label-small">Used</p>
                     </div>
                   </div>
                 </div>
+
                 {/* Footer */}
                 {stock.operations > 0 && <div className="card-hint">👆 Click to see details</div>}
                 {stock.operations === 0 && <div className="card-no-ops">No operations yet</div>}
@@ -843,17 +964,7 @@ function Cutting() {
                   required
                 />
               </div>
-              <div className="input-group">
-                <label>Remarks</label>
-                <textarea
-                  name="remarks"
-                  value={formData.remarks}
-                  onChange={handleInputChange}
-                  placeholder="Add remarks (optional)"
-                  rows="3"
-                  className="input-field"
-                />
-              </div>
+
 
               {activeTab === 'circular' && (
                 <div className="input-group">
@@ -867,9 +978,20 @@ function Cutting() {
                     placeholder="0.010"
                     required
                   />
-                  <small className="help-text">Only for Circular cutting</small>
+                  <small className="help-text">Auto-calculated from Diameter</small>
                 </div>
               )}
+              <div className="input-group">
+                <label>Remarks</label>
+                <textarea
+                  name="remarks"
+                  value={formData.remarks}
+                  onChange={handleInputChange}
+                  placeholder="Add remarks (optional)"
+                  rows="3"
+                  className="input-field"
+                />
+              </div>
             </div>
 
             {/* Inline immediate stock warning (before calculation) */}

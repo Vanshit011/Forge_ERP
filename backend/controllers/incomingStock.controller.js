@@ -19,7 +19,9 @@ const getMaterialInfo = () => {
 // @route   GET /api/incoming-stock
 export const getAllStock = async (req, res) => {
   try {
-    const stocks = await IncomingStock.find().sort({ date: -1 });
+    const stocks = await IncomingStock.find()
+      // Sort by Date Descending (-1), then by CreatedAt Descending (-1)
+      .sort({ date: -1, createdAt: -1 });
 
     res.status(200).json({
       success: true,
@@ -201,7 +203,7 @@ export const deleteStock = async (req, res) => {
 export const getStockByMonth = async (req, res) => {
   try {
     const { year, month } = req.params;
-    
+
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59);
 
@@ -265,7 +267,7 @@ export const getMonthlyStockStats = async (req, res) => {
           monthName: {
             $arrayElemAt: [
               ['', 'January', 'February', 'March', 'April', 'May', 'June',
-               'July', 'August', 'September', 'October', 'November', 'December'],
+                'July', 'August', 'September', 'October', 'November', 'December'],
               '$_id.month'
             ]
           },
@@ -322,9 +324,9 @@ export const getMaterialsInfo = async (req, res) => {
 export const getStockByMaterial = async (req, res) => {
   try {
     const { material } = req.params;
-    
-    const stocks = await IncomingStock.find({ 
-      material: material.toUpperCase() 
+
+    const stocks = await IncomingStock.find({
+      material: material.toUpperCase()
     }).sort({ date: -1 });
 
     res.status(200).json({
@@ -346,9 +348,9 @@ export const getStockByMaterial = async (req, res) => {
 export const getStockByColor = async (req, res) => {
   try {
     const { color } = req.params;
-    
-    const stocks = await IncomingStock.find({ 
-      colorCode: color.toUpperCase() 
+
+    const stocks = await IncomingStock.find({
+      colorCode: color.toUpperCase()
     }).sort({ date: -1 });
 
     // Group by diameter

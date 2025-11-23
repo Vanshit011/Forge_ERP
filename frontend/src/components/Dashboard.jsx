@@ -67,9 +67,9 @@ function Dashboard() {
       const cuttings = cuttingsRes.data.data || [];
       const forgings = forgingsRes.data.data || [];
       const dispatches = dispatchesRes.data.data || [];
-      console.log("DISPATCH RESPONSE RAW:", dispatchesRes.data);
-      console.log("DISPATCH DATA:", dispatches);
-      console.log("DISPATCH COUNT:", dispatches.length);
+      // console.log("DISPATCH RESPONSE RAW:", dispatchesRes.data);
+      // console.log("DISPATCH DATA:", dispatches);
+      // console.log("DISPATCH COUNT:", dispatches.length);
 
 
 

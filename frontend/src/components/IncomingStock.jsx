@@ -49,6 +49,9 @@ function IncomingStock() {
 
   const fetchStocks = async () => {
     try {
+      // Optional: Set loading to true before fetching if you want the spinner on refreshes
+      // setLoading(true); 
+
       const response = await axios.get(`${API_URL}/incoming-stock`);
       const rawData = response.data.data || [];
 
@@ -64,13 +67,14 @@ function IncomingStock() {
         }
 
         // 2. If Dates are equal, sort by ID (newest created first)
-        // This ensures the one you just added appears at the top
         return b._id.localeCompare(a._id);
       });
 
       setStocks(sortedData);
+      setLoading(false); // <--- THIS WAS MISSING. ADD THIS LINE.
     } catch (error) {
       console.error('Error fetching stocks:', error);
+      setLoading(false); // <--- ALSO ADD THIS (Stop loading on error)
     }
   };
 

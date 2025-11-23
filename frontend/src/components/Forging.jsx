@@ -13,6 +13,7 @@ function Forging() {
   const [selectedCutting, setSelectedCutting] = useState(null);
   const [showStockModal, setShowStockModal] = useState(false);
   const [selectedStockForBreakdown, setSelectedStockForBreakdown] = useState(null);
+  const [editingForging, setEditingForging] = useState(null);
 
   const [formData, setFormData] = useState({
     cuttingId: '',
@@ -56,6 +57,47 @@ function Forging() {
     } catch (error) {
       console.error('Error fetching forgings:', error);
     }
+  };
+
+  // ➕ ADD THIS FUNCTION:
+  // PASTE THIS FUNCTION 👇
+  const handleEditForging = (forging) => {
+    setEditingForging(forging);
+
+    const cuttingIdVal = forging.cuttingId?._id || forging.cuttingId;
+
+    // Logic to handle missing dropdown items (if stock is 0)
+    let cutting = cuttingRecords.find(c => c._id === cuttingIdVal);
+    if (!cutting && forging.cuttingId && typeof forging.cuttingId === 'object') {
+      cutting = {
+        _id: forging.cuttingId._id,
+        material: forging.cuttingId.material,
+        dia: forging.cuttingId.dia,
+        partName: forging.cuttingId.partName,
+        colorCode: forging.cuttingId.colorCode,
+        cuttingWeightPerPiece: 'N/A',
+        availablePieces: 0
+      };
+    }
+    setSelectedCutting(cutting || null);
+
+    setFormData({
+      cuttingId: cuttingIdVal,
+      date: forging.date.split('T')[0],
+      size: forging.size,
+      forgingQty: forging.forgingQty.toString(),
+      forgingRingWeight: forging.forgingRingWeight.toString(),
+      rejectionQty: forging.rejectionQty.toString(),
+      remarks: forging.remarks || '',
+      forgingResults: {
+        babariPerPiece: forging.forgingResults?.babariPerPiece?.toString() || '0.010',
+        scrapPieces: forging.forgingResults?.scrapPieces?.toString() || '0',
+        finalOkPieces: forging.forgingResults?.finalOkPieces?.toString() || ''
+      }
+    });
+
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const fetchAvailableCuttingRecords = async () => {
@@ -157,7 +199,14 @@ function Forging() {
         }
       };
 
-      await axios.post(`${API_URL}/forging`, payload);
+      // REPLACE THE AXIOS CALLS WITH THIS 👇
+      if (editingForging) {
+        await axios.put(`${API_URL}/forging/${editingForging._id}`, payload);
+        alert('✅ Forging record updated successfully!');
+      } else {
+        await axios.post(`${API_URL}/forging`, payload);
+        alert('✅ Forging record created successfully!');
+      }
 
       alert('✅ Forging record created successfully!');
       resetForm();
@@ -201,6 +250,7 @@ function Forging() {
 
   const resetForm = () => {
     setShowForm(false);
+    setEditingForging(null); // ➕ ADD THIS LINE
     setSelectedCutting(null);
     setFormData({
       cuttingId: '',
@@ -508,6 +558,11 @@ function Forging() {
                 onChange={handleCuttingSelect}
                 required
                 className="select-modern"
+                disabled={!!editingForging}  // 👈 ADD THIS
+                style={{
+                  backgroundColor: editingForging ? '#f3f4f6' : 'white', // 👈 ADD THIS
+                  cursor: editingForging ? 'not-allowed' : 'pointer'     // 👈 ADD THIS
+                }}
               >
                 <option value="">-- Select Cutting Record --</option>
                 {cuttingRecords.map((record) => (
@@ -691,8 +746,9 @@ function Forging() {
               className="submit-btn-forging"
               disabled={loading || !selectedCutting}
             >
-              <span>✅</span>
-              <span>{loading ? 'Saving...' : 'Save Forging Record'}</span>
+              {/* <span>✅</span> */}
+              <span>{editingForging ? '✏️' : '✅'}</span>
+              <span>{editingForging ? 'Update Record' : 'Save Record'}</span>
             </button>
           </form>
         </div>
@@ -721,13 +777,12 @@ function Forging() {
                       {forging.material}
                     </span>
                   </div>
-                  <button
-                    className="delete-btn-forging"
-                    onClick={() => handleDelete(forging._id)}
-                    title="Delete"
-                  >
-                    🗑️
-                  </button>
+                  <div className="card-actions" style={{ display: 'flex', gap: '8px' }}>
+                    {/* ADD THIS BUTTON 👇 */}
+                    <button className="edit-btn-forging" onClick={() => handleEditForging(forging)} title="Edit">✏️</button>
+
+                    <button className="delete-btn-forging" onClick={() => handleDelete(forging._id)} title="Delete">🗑️</button>
+                  </div>
                 </div>
 
                 <div className="efficiency-indicator">

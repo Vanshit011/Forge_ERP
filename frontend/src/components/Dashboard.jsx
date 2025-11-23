@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import '../styles/Dashboard.css';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL;
 
 function Dashboard() {
   const [stats, setStats] = useState({
@@ -32,6 +32,10 @@ function Dashboard() {
     totalBabari: 0,
     avgEfficiency: 0,
 
+    // DISPATCH
+    totalDispatchedPieces: 0,
+    totalChallans: 0,
+
     // OVERALL
     totalWaste: 0,
     wastePercentage: 0
@@ -41,6 +45,8 @@ function Dashboard() {
   const [cuttingDetails, setCuttingDetails] = useState([]);
   const [forgingDetails, setForgingDetails] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [dispatchDetails, setDispatchDetails] = useState([]);
+
 
   useEffect(() => {
     fetchAllData();
@@ -50,15 +56,22 @@ function Dashboard() {
     try {
       setLoading(true);
 
-      const [stocksRes, cuttingsRes, forgingsRes] = await Promise.all([
+      const [stocksRes, cuttingsRes, forgingsRes, dispatchesRes] = await Promise.all([
         axios.get(`${API_URL}/incoming-stock`),
         axios.get(`${API_URL}/cutting`),
-        axios.get(`${API_URL}/forging`)
+        axios.get(`${API_URL}/forging`),
+        axios.get(`${API_URL}/dispatch`)
       ]);
 
       const stocks = stocksRes.data.data || [];
       const cuttings = cuttingsRes.data.data || [];
       const forgings = forgingsRes.data.data || [];
+      const dispatches = dispatchesRes.data.data || [];
+      console.log("DISPATCH RESPONSE RAW:", dispatchesRes.data);
+      console.log("DISPATCH DATA:", dispatches);
+      console.log("DISPATCH COUNT:", dispatches.length);
+
+
 
       // INCOMING STOCK CALCULATIONS
       const totalQuantity = stocks.reduce((sum, s) => sum + (s.quantity || 0), 0);
@@ -69,13 +82,13 @@ function Dashboard() {
       // CUTTING CALCULATIONS
       const sharings = cuttings.filter(c => c.cuttingType === 'SHARING');
       const circulars = cuttings.filter(c => c.cuttingType === 'CIRCULAR');
-      
+
       const sharingWaste = sharings.reduce((sum, c) => sum + (c.calculations?.totalWaste || 0), 0);
       const circularWaste = circulars.reduce((sum, c) => sum + (c.calculations?.totalWaste || 0), 0);
       const endPieceWaste = cuttings.reduce((sum, c) => sum + (c.calculations?.endPieceUsed || 0), 0);
       const totalBhuki = circulars.reduce((sum, c) => sum + (c.calculations?.totalBhuki || 0), 0);
       const totalPieces = cuttings.reduce((sum, c) => sum + (c.calculations?.totalPieces || 0), 0);
-      const totalCuttingWaste = sharingWaste + circularWaste ;
+      const totalCuttingWaste = sharingWaste + circularWaste;
 
       // FORGING CALCULATIONS
       const totalForgingQty = forgings.reduce((sum, f) => sum + f.forgingQty, 0);
@@ -89,6 +102,11 @@ function Dashboard() {
 
       const totalWaste = totalCuttingWaste + totalBabari;
       const wastePercentage = totalQuantity > 0 ? (totalWaste / totalQuantity) * 100 : 0;
+
+      const totalDispatchedPieces = dispatches.reduce((sum, d) => sum + (d.quantity || d.qty || d.dispatchQty || 0), 0);
+      const totalChallans = dispatches.length;
+
+      setDispatchDetails(dispatches.slice(0, 5));
 
       setStats({
         totalStock: totalItems,
@@ -112,7 +130,9 @@ function Dashboard() {
         totalBabari,
         avgEfficiency,
         totalWaste,
-        wastePercentage
+        wastePercentage,
+        totalDispatchedPieces,
+        totalChallans
       });
 
       // Set detailed data
@@ -203,7 +223,7 @@ function Dashboard() {
               </div>
               <div className="detail-item warning">
                 <span className="detail-label">⚠️ Total Waste:</span>
-                <span className="detail-value">{(stats.sharingWaste ).toFixed(2)} kg</span>
+                <span className="detail-value">{(stats.sharingWaste).toFixed(2)} kg</span>
               </div>
             </div>
           </div>
@@ -239,6 +259,30 @@ function Dashboard() {
             </div>
           </div>
         </div>
+
+        <div className="overview-card dispatch-card">
+          <div className="card-header-colored dispatch">
+            <h3>🚚 DISPATCH</h3>
+            <span className="card-icon">📦</span>
+          </div>
+          <div className="card-body">
+            <div className="main-stat">
+              <div className="stat-number">{stats.totalDispatchedPieces}</div>
+              <div className="stat-unit">pcs</div>
+            </div>
+            <div className="stat-details">
+              <div className="detail-item">
+                <span className="detail-label">Total Dispatches:</span>
+                <span className="detail-value">{stats.totalChallans}</span>
+              </div>
+              <div className="detail-item">
+                <span className="detail-label">Total Pieces Dispatched:</span>
+                <span className="detail-value">{stats.totalDispatchedPieces}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
 
         <div className="overview-card waste-card">
           <div className="card-header-colored waste">
@@ -367,6 +411,41 @@ function Dashboard() {
             </div>
           </div>
         </div>
+
+        {/* DISPATCH DETAILS */}
+        <div className="details-card">
+          <div className="details-header">
+            <h2>🚚 Recent Dispatches</h2>
+            <a href="/dispatch" className="view-all">View All →</a>
+          </div>
+          {/* <div className="details-summary">
+            <div>Total Dispatched Pieces: {stats.totalDispatchedPieces}</div>
+            <div>Total Challans: {stats.totalChallans}</div>
+          </div> */}
+          <div className="details-table">
+            <div className="table-head">
+              <div className="col-party">Party Name</div>
+              <div className="col-challan">Challan No</div>
+              <div className="col-qty">Qty</div>
+              <div className="col-date">Date</div>
+            </div>
+            <div className="table-body">
+              {dispatchDetails.length === 0 ? (
+                <div className="empty-message">No dispatch records</div>
+              ) : (
+                dispatchDetails.map((item, idx) => (
+                  <div key={idx} className="table-row">
+                    <div className="col-party">{item.partyName}</div>
+                    <div className="col-challan">{item.challanNo}</div>
+                    <div className="col-qty">{item.dispatchQty} pcs</div>
+                    <div className="col-date">{new Date(item.date).toLocaleDateString()}</div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+
       </div>
 
       {/* WASTE BREAKDOWN */}
@@ -465,6 +544,18 @@ function Dashboard() {
 
           <div className="flow-arrow">→</div>
 
+
+          <div className="flow-stage">
+            <div className="flow-title">DISPATCH</div>
+            <div className="flow-box dispatch-box">
+              <div className="flow-number">{stats.totalDispatchedPieces}</div>
+              <div className="flow-label">Dispatched Pieces</div>
+            </div>
+          </div>
+
+          <div className="flow-arrow">→</div>
+
+
           <div className="flow-stage">
             <div className="flow-title">WASTE</div>
             <div className="flow-box waste-box">
@@ -491,6 +582,10 @@ function Dashboard() {
           <button className="action-btn new-forging" onClick={() => window.location.href = '/forging'}>
             <span className="btn-icon">🔨</span>
             <span className="btn-text">New Forging</span>
+          </button>
+          <button className="action-btn new-dispatch" onClick={() => window.location.href = '/dispatch'}>
+            <span className="btn-icon">🚚</span>
+            <span className="btn-text">New Dispatch</span>
           </button>
         </div>
       </div>

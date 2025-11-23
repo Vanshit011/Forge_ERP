@@ -9,6 +9,7 @@ import Dashboard from './components/Dashboard';
 import IncomingStock from './components/IncomingStock';
 import Cutting from './components/Cutting';
 import Forging from './components/Forging';
+import Dispatch from './components/Dispatch';
 
 function App() {
   return (
@@ -16,7 +17,7 @@ function App() {
       <Routes>
         {/* Public Route */}
         <Route path="/login" element={<Login />} />
-        
+
         {/* Protected Routes */}
         <Route path="/*" element={
           <ProtectedRoute>
@@ -38,22 +39,23 @@ function AppContent() {
     { path: '/dashboard', icon: '📊', label: 'Dashboard', color: '#667eea', shortcut: 'D' },
     { path: '/incoming-stock', icon: '📦', label: 'Incoming Stock', color: '#48bb78', shortcut: 'S' },
     { path: '/cutting', icon: '✂️', label: 'Cutting', color: '#ed8936', shortcut: 'C' },
-    { path: '/forging', icon: '🔨', label: 'Forging', color: '#9f7aea', shortcut: 'F' }
+    { path: '/forging', icon: '🔨', label: 'Forging', color: '#9f7aea', shortcut: 'F' },
+    {path: '/dispatch', icon: '🚚', label: 'Dispatch', color: '#f56565', shortcut: 'X' }
   ];
 
   // Keyboard shortcuts effect
   useEffect(() => {
     const handleKeyPress = (e) => {
       // Check if user is typing in an input field
-      if (e.target.tagName === 'INPUT' || 
-          e.target.tagName === 'TEXTAREA' || 
-          e.target.tagName === 'SELECT') {
+      if (e.target.tagName === 'INPUT' ||
+        e.target.tagName === 'TEXTAREA' ||
+        e.target.tagName === 'SELECT') {
         return;
       }
 
       // Alt key combinations for navigation
       if (e.altKey) {
-        switch(e.key.toLowerCase()) {
+        switch (e.key.toLowerCase()) {
           case 'd':
             e.preventDefault();
             navigate('/dashboard');
@@ -69,6 +71,10 @@ function AppContent() {
           case 'f':
             e.preventDefault();
             navigate('/forging');
+            break;
+          case 'x':
+            e.preventDefault();
+            navigate('/dispatch');
             break;
           default:
             break;
@@ -110,34 +116,40 @@ function AppContent() {
   };
 
   const getPageInfo = () => {
-    switch(location.pathname) {
-      case '/dashboard': 
-        return { 
-          title: 'Dashboard', 
+    switch (location.pathname) {
+      case '/dashboard':
+        return {
+          title: 'Dashboard',
           description: 'Overview of all operations',
           icon: '📊'
         };
-      case '/incoming-stock': 
-        return { 
-          title: 'Incoming Stock', 
+      case '/incoming-stock':
+        return {
+          title: 'Incoming Stock',
           description: 'Raw material inventory management',
           icon: '📦'
         };
-      case '/cutting': 
-        return { 
-          title: 'Cutting Operations', 
+      case '/cutting':
+        return {
+          title: 'Cutting Operations',
           description: 'Sharing & Circular cutting processes',
           icon: '✂️'
         };
-      case '/forging': 
-        return { 
-          title: 'Forging Operations', 
+      case '/forging':
+        return {
+          title: 'Forging Operations',
           description: 'Complete forging traceability',
           icon: '🔨'
         };
-      default: 
-        return { 
-          title: 'Forge ERP', 
+      case '/dispatch':
+        return {
+          title: 'Dispatch Management',
+          description: 'Manage dispatched forging records',
+          icon: '🚚'
+        };
+      default:
+        return {
+          title: 'Forge ERP',
           description: 'Manufacturing Management',
           icon: '🏭'
         };
@@ -235,7 +247,7 @@ function AppContent() {
       {/* Sidebar */}
       <aside className={`sidebar ${isSidebarOpen ? 'open' : 'closed'}`}>
         <div className="sidebar-gradient"></div>
-        
+
         <div className="sidebar-content">
           {/* Sidebar Header */}
           <div className="sidebar-header">
@@ -257,7 +269,7 @@ function AppContent() {
                 key={item.path}
                 to={item.path}
                 className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}
-                style={{'--nav-color': item.color}}
+                style={{ '--nav-color': item.color }}
                 title={`${item.label} (Alt + ${item.shortcut})`}
               >
                 <div className="nav-icon-wrapper">
@@ -299,8 +311,8 @@ function AppContent() {
               </button>
             )}
             {!isSidebarOpen && (
-              <button 
-                className="logout-btn-sidebar-mini" 
+              <button
+                className="logout-btn-sidebar-mini"
                 onClick={handleLogout}
                 title="Logout"
               >
@@ -316,8 +328,8 @@ function AppContent() {
         {/* Top Bar */}
         <div className="top-bar">
           <div className="top-bar-left">
-            <button 
-              className="sidebar-toggle" 
+            <button
+              className="sidebar-toggle"
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               title="Toggle Sidebar (Ctrl + K)"
             >
@@ -337,7 +349,7 @@ function AppContent() {
           </div>
 
           <div className="top-bar-right">
-            <button 
+            <button
               className="shortcuts-btn"
               onClick={() => setShowShortcuts(true)}
               title="Show Keyboard Shortcuts (Ctrl + /)"
@@ -380,6 +392,7 @@ function AppContent() {
             <Route path="/incoming-stock" element={<IncomingStock />} />
             <Route path="/cutting" element={<Cutting />} />
             <Route path="/forging" element={<Forging />} />
+            <Route path='/dispatch' element={<Dispatch />} />
           </Routes>
         </div>
 

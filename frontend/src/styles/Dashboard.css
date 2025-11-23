@@ -52,8 +52,13 @@ body {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .loading-screen p {
@@ -153,6 +158,10 @@ body {
 
 .card-header-colored.waste {
   background: linear-gradient(135deg, var(--waste), #dc2626);
+}
+
+.card-header-colored.dispatch {
+  background: linear-gradient(135deg, #10b981, #047857);
 }
 
 .card-header-colored h3 {
@@ -552,8 +561,15 @@ body {
 }
 
 @keyframes arrowBounce {
-  0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(4px); }
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  50% {
+    transform: translateX(4px);
+  }
 }
 
 /* ============ QUICK ACTIONS ============ */
@@ -623,6 +639,15 @@ body {
 
 .action-btn.new-forging:hover {
   background: linear-gradient(135deg, #e9d5ff, #ddd6fe);
+}
+
+.action-btn.new-dispatch {
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.action-btn.new-dispatch:hover {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
 }
 
 .btn-icon {

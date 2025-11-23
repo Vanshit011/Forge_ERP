@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 // import '../styles/Dispatch.css'; // We can reuse forging styles or create Dispatch.css
 
-const API_URL = import.meta.env.LIVE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL;
 
 function Dispatch() {
   const [dispatches, setDispatches] = useState([]);

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import '../styles/Forging.css';
 
-const API_URL = process.env.REACT_APP_API_URL;
+const API_URL = import.meta.env.VITE_API_URL;
 
 function Forging() {
   const [forgings, setForgings] = useState([]);

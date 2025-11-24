@@ -3,7 +3,6 @@ import { Navigate } from 'react-router-dom';
 import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL;
-
 function ProtectedRoute({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -14,7 +13,7 @@ function ProtectedRoute({ children }) {
 
   const checkAuth = async () => {
     const token = localStorage.getItem('token');
-    
+
     if (!token) {
       setIsAuthenticated(false);
       setLoading(false);
@@ -28,7 +27,7 @@ function ProtectedRoute({ children }) {
           Authorization: `Bearer ${token}`
         }
       });
-      
+
       setIsAuthenticated(true);
     } catch (error) {
       console.error('Auth error:', error);

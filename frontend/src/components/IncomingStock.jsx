@@ -396,9 +396,9 @@ function IncomingStock() {
                       backgroundColor: getColorStyle(mat.colorCode)
                     }}
                   >
-                    <span className="material-bar-percentage">
+                    {/* <span className="material-bar-percentage">
                       {((mat.totalQuantity / totalQuantity) * 100).toFixed(1)}%
-                    </span>
+                    </span> */}
                   </div>
                 </div>
                 <div className="material-bar-meta">

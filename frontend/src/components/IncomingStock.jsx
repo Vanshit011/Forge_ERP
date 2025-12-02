@@ -26,9 +26,25 @@ function IncomingStock() {
     material: '',
     quantity: '',
     tcReport: '',
-    partName: '',
+    // partName: '',
     heatNo: ''
   });
+
+  useEffect(() => {
+    const handleShortcut = (e) => {
+      // Press INSERT key to open Add Stock
+      if (e.key === "Insert") {
+        e.preventDefault();
+        setShowForm(true);
+      }
+    };
+
+    window.addEventListener("keydown", handleShortcut);
+
+    return () => {
+      window.removeEventListener("keydown", handleShortcut);
+    };
+  }, []);
 
   // Add keyboard shortcut listener
   useEffect(() => {
@@ -159,7 +175,7 @@ function IncomingStock() {
         material: '',
         quantity: '',
         tcReport: '',
-        partName: '',
+        // partName: '',
         heatNo: ''
       });
       fetchStocks();
@@ -200,8 +216,8 @@ function IncomingStock() {
   };
 
   const filteredStocks = stocks.filter(stock =>
-    stock.partName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    stock.partyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    // stock.partName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    stock.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     stock.material?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -343,7 +359,7 @@ function IncomingStock() {
               material: '',
               quantity: '',
               tcReport: '',
-              partName: '',
+              // partName: '',
               heatNo: ''
             });
           }}
@@ -528,13 +544,13 @@ function IncomingStock() {
               </div>
 
               <div className="input-group">
-                <label>Party Name</label>
+                <label>Customer Name</label>
                 <input
                   type="text"
                   name="partyName"
                   value={formData.partyName}
                   onChange={handleInputChange}
-                  placeholder="Enter party name"
+                  // placeholder="Enter party name"
                   required
                 />
               </div>
@@ -547,7 +563,7 @@ function IncomingStock() {
                   name="dia"
                   value={formData.dia}
                   onChange={handleInputChange}
-                  placeholder="Select from chips above"
+                  // placeholder="Select from chips above"
                   required
                   disabled={!selectedMaterialInfo}
                 />
@@ -561,7 +577,7 @@ function IncomingStock() {
                   name="quantity"
                   value={formData.quantity}
                   onChange={handleInputChange}
-                  placeholder="10150"
+                  // placeholder="10150"
                   required
                   min="0"
                 />
@@ -574,11 +590,11 @@ function IncomingStock() {
                   name="tcReport"
                   value={formData.tcReport}
                   onChange={handleInputChange}
-                  placeholder="TC-2025-001"
+                // placeholder="TC-2025-001"
                 />
               </div>
 
-              <div className="input-group">
+              {/* <div className="input-group">
                 <label>Part Name</label>
                 <input
                   type="text"
@@ -588,7 +604,7 @@ function IncomingStock() {
                   placeholder="Chain Link"
                   required
                 />
-              </div>
+              </div> */}
 
               <div className="input-group">
                 <label>Heat Number</label>
@@ -597,7 +613,7 @@ function IncomingStock() {
                   name="heatNo"
                   value={formData.heatNo}
                   onChange={handleInputChange}
-                  placeholder="HT-2025-001"
+                // placeholder="HT-2025-001"
                 />
               </div>
             </div>
@@ -668,10 +684,15 @@ function IncomingStock() {
                   </div>
                 </div>
 
-                <h3 className="stock-title">{stock.partName}</h3>
-                <p className="stock-party">{stock.partyName}</p>
+                {/* <h3 className="stock-title">{stock.partName}</h3> */}
+                {/* <p className="stock-party">{stock.partName}</p> */}
 
                 <div className="stock-details">
+                  <div className="detail-row">
+                    <span className="detail-label">Customer:</span>
+                    <span className="detail-value">{stock.partyName}</span>
+                  </div>
+
                   <div className="detail-row">
                     <span className="detail-label">Diameter:</span>
                     <span className="detail-value">{stock.dia} mm</span>
@@ -696,6 +717,13 @@ function IncomingStock() {
                     <div className="detail-row">
                       <span className="detail-label">Heat No:</span>
                       <span className="detail-value">{stock.heatNo}</span>
+                    </div>
+
+                  )}
+                  {stock.tcReport && (
+                    <div className="detail-row">
+                      <span className="detail-label">TC Report:</span>
+                      <span className="detail-value">{stock.tcReport}</span>
                     </div>
                   )}
                 </div>

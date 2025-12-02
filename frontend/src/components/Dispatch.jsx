@@ -191,7 +191,7 @@ function Dispatch() {
       {showForm && (
         <div className="form-card-forging">
           <div className="form-header-modern">
-            <h2>🚚 Create Dispatch Challan</h2>
+            <h2>🚚 Create Dispatch </h2>
           </div>
           <form onSubmit={handleSubmit}>
             <div className="form-grid-forging">
@@ -222,12 +222,12 @@ function Dispatch() {
 
               <div className="input-group">
                 <label>Party Name</label>
-                <input type="text" name="partyName" value={formData.partyName} onChange={handleInputChange} placeholder="Customer Name" required />
+                <input type="text" name="partyName" value={formData.partyName} onChange={handleInputChange}  required />
               </div>
 
               <div className="input-group">
-                <label>Challan No</label>
-                <input type="text" name="challanNo" value={formData.challanNo} onChange={handleInputChange} placeholder="CH-001" required />
+                <label>Bill No</label>
+                <input type="text" name="challanNo" value={formData.challanNo} onChange={handleInputChange}  required />
               </div>
 
               <div className="input-group">
@@ -237,7 +237,7 @@ function Dispatch() {
 
               <div className="input-group">
                 <label>Remarks</label>
-                <input type="text" name="remarks" value={formData.remarks} onChange={handleInputChange} placeholder="Optional" />
+                <input type="text" name="remarks" value={formData.remarks} onChange={handleInputChange}  />
               </div>
             </div>
             <button type="submit" className="submit-btn-forging" disabled={loading}>
@@ -259,7 +259,7 @@ function Dispatch() {
                 <div className="forging-card-header">
                   <div className="header-info">
                     <h3>{d.partyName}</h3>
-                    <span className="type-badge" style={{backgroundColor: '#3b82f6'}}>Challan: {d.challanNo}</span>
+                    <span className="type-badge" style={{backgroundColor: '#3b82f6'}}>Bill No: {d.challanNo}</span>
                   </div>
                   <button className="delete-btn-forging" onClick={() => handleDelete(d._id)}>🗑️</button>
                 </div>

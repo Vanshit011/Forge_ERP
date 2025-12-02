@@ -7,10 +7,11 @@ const API_URL = import.meta.env.VITE_API_URL;
 function Dashboard() {
   const [stats, setStats] = useState({
     // INCOMING STOCK
-    totalStock: 0,
     totalQuantity: 0,
     totalItems: 0,
     availableQuantity: 0,
+    totalStock: 0,
+    // incomingStock: 0,
 
     // CUTTING
     totalCuttingOps: 0,
@@ -74,10 +75,24 @@ function Dashboard() {
 
 
       // INCOMING STOCK CALCULATIONS
+
+      // Total incoming weight (kg)
       const totalQuantity = stocks.reduce((sum, s) => sum + (s.quantity || 0), 0);
+
+      // Number of items received
       const totalItems = stocks.length;
-      const usedInCutting = cuttings.reduce((sum, c) => sum + (c.calculations?.totalSteelUsed || 0), 0);
-      const availableQuantity = totalQuantity;
+
+      // Total used in cutting (kg)
+      const usedInCutting = cuttings.reduce(
+        (sum, c) => sum + (c.calculations?.totalSteelUsed || 0),
+        0
+      );
+
+      // Still available stock (kg)
+      const availableQuantity = totalQuantity + usedInCutting;
+
+      // Final Incoming Stock = used + available
+      const finalIncomingStock = usedInCutting + availableQuantity;
 
       // CUTTING CALCULATIONS
       const sharings = cuttings.filter(c => c.cuttingType === 'SHARING');
@@ -111,6 +126,7 @@ function Dashboard() {
       setStats({
         totalStock: totalItems,
         totalQuantity,
+        availableQuantity,               // Still available
         totalItems,
         availableQuantity,
         totalCuttingOps: cuttings.length,
@@ -183,8 +199,8 @@ function Dashboard() {
             </div>
             <div className="stat-details">
               <div className="detail-item">
-                <span className="detail-label">Items Received:</span>
-                <span className="detail-value">{stats.totalItems}</span>
+                <span className="detail-label">Opening stock:</span>
+                <span className="detail-value">{stats.availableQuantity.toFixed(2)} kg</span>
               </div>
               <div className="detail-item">
                 <span className="detail-label">Used in Cutting:</span>
@@ -192,7 +208,7 @@ function Dashboard() {
               </div>
               <div className="detail-item">
                 <span className="detail-label">Still Available:</span>
-                <span className="detail-value success">{stats.availableQuantity.toFixed(2)} kg</span>
+                <span className="detail-value success">{stats.totalQuantity} kg</span>
               </div>
             </div>
           </div>
@@ -322,7 +338,7 @@ function Dashboard() {
           </div>
           <div className="details-table">
             <div className="table-head">
-              <div className="col-part">Part Name</div>
+              {/* <div className="col-part">Part Name</div> */}
               <div className="col-material">Material</div>
               <div className="col-qty">Quantity</div>
               <div className="col-date">Date</div>
@@ -333,7 +349,7 @@ function Dashboard() {
               ) : (
                 incomingStockDetails.map((item, idx) => (
                   <div key={idx} className="table-row">
-                    <div className="col-part">{item.partName}</div>
+                    {/* <div className="col-part">{item.partName}</div> */}
                     <div className="col-material">{item.material}</div>
                     <div className="col-qty">{item.quantity.toFixed(2)} kg</div>
                     <div className="col-date">{new Date(item.date).toLocaleDateString()}</div>

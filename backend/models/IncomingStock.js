@@ -46,11 +46,11 @@ const incomingStockSchema = new mongoose.Schema({
     trim: true
   },
 
-  partName: {
-    type: String,
-    required: [true, 'Part name is required'],
-    trim: true
-  },
+  // partName: {
+  //   type: String,
+  //   required: [true, 'Part name is required'],
+  //   trim: true
+  // },
 
   heatNo: {
     type: String,

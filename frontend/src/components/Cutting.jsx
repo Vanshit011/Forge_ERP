@@ -20,6 +20,7 @@ function Cutting() {
   const [showDiaBreakdown, setShowDiaBreakdown] = useState(false);
   const [selectedMaterialForBreakdown, setSelectedMaterialForBreakdown] = useState(null);
   const [editingCutting, setEditingCutting] = useState(null);
+  const [isManualTotalCutWeight, setIsManualTotalCutWeight] = useState(false);
 
   const [availablePieces, setAvailablePieces] = useState(0);
   const [requiredSteelForTarget, setRequiredSteelForTarget] = useState(0);
@@ -40,6 +41,23 @@ function Cutting() {
     bhukiWeight: '0.010',
     remarks: ''
   });
+
+  useEffect(() => {
+    const handleShortcut = (e) => {
+      // Press INSERT key to open Add Stock
+      if (e.key === "Insert") {
+        e.preventDefault();
+        setShowForm(true);
+      }
+    };
+
+    window.addEventListener("keydown", handleShortcut);
+
+    return () => {
+      window.removeEventListener("keydown", handleShortcut);
+    };
+  }, []);
+
 
   useEffect(() => {
     fetchStocks();
@@ -575,6 +593,13 @@ function Cutting() {
                             <p className="metric-value">{item.totalWaste.toFixed(3)} kg</p>
                           </div>
                         </div>
+                        <div className="metric-box">
+                          <span className="metric-icon">📝</span>
+                          <div>
+                            <p className="metric-label">Remark</p>
+                            <p className="metric-value">{item.remarks}</p>
+                          </div>
+                        </div>
                         {item.totalBhuki > 0 && (
                           <div className="metric-box">
                             <span className="metric-icon">🔥</span>
@@ -587,11 +612,11 @@ function Cutting() {
                       </div>
 
                       {/* REMARKS ROW (Optional) */}
-                      {item.remarks && (
+                      {/* {item.remarks && (
                         <div style={{ marginTop: '8px', fontSize: '0.85rem', color: '#666', paddingLeft: '4px' }}>
-                          📝 {item.remarks}
+                           
                         </div>
-                      )}
+                      )} */}
                     </div>
                   ))}
                 </div>
@@ -636,7 +661,7 @@ function Cutting() {
           ) : (
             <>
               <span>+</span>
-              <span>New Cutting</span>
+              <span>Add Cutting</span>
             </>
           )}
         </button>
@@ -839,11 +864,6 @@ function Cutting() {
                       <span>Diameter:</span>
                       <strong>{selectedStock.dia} mm</strong>
                     </div>
-                    <div className="info-item">
-                      <span>Part:</span>
-                      <strong>{selectedStock.partName}</strong>
-                    </div>
-
                     {/* NEW: show how many pieces you can cut from this stock using current Total Cut Weight */}
                     <div className="info-item">
                       <span>Can Cut (approx):</span>
@@ -855,7 +875,18 @@ function Cutting() {
                       <span>Steel needed for target:</span>
                       <strong>{requiredSteelForTarget.toFixed(3)} kg</strong>
                     </div>
+                    <div className="info-item">
+                      <span>Reaming stock:</span>
+                      <strong>
+                        {(selectedStock.quantity - requiredSteelForTarget).toFixed(3)} kg
+                      </strong>
+                    </div>
                   </div>
+
+                  {/* <div className="info-item">
+                    <span>Reaming stock</span>
+                    <strong>{selectedStock.quantity.toFixed(2)} - {requiredSteelForTarget.toFixed(3)}</strong>
+                  </div> */}
                 </div>
               )}
             </div>
@@ -885,7 +916,7 @@ function Cutting() {
               </div>
 
               <div className="input-group">
-                <label>Target Pieces to Cut *</label>
+                <label>Cutting Qunatity *</label>
                 <input
                   type="number"
                   name="targetPieces"
@@ -923,35 +954,6 @@ function Cutting() {
                   required
                 />
               </div>
-
-              <div className="input-group">
-                <label>Total Cut Weight (kg) *</label>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <input
-                    type="number"
-                    step="0.001"
-                    name="totalCutWeight"
-                    value={formData.totalCutWeight}
-                    onChange={handleInputChange}
-                    placeholder="0.520"
-                    required
-                    style={{ flex: 1 }}
-                  />
-                  {/* NEW: quick compute button */}
-
-                </div>
-
-                <small className="help-text">Weight per piece including end piece and bhuki (if circular)</small>
-                <button
-                  type="button"
-                  className="small-btn"
-                  title="Compute from min/max + end + bhuki"
-                  onClick={() => computeTotalCutWeightFromParts()}
-                >
-                  ⚙️ Compute
-                </button>
-              </div>
-
               <div className="input-group">
                 <label>End Piece Weight (kg) *</label>
                 <input
@@ -964,8 +966,6 @@ function Cutting() {
                   required
                 />
               </div>
-
-
               {activeTab === 'circular' && (
                 <div className="input-group">
                   <label>Bhuki Weight (kg) *</label>
@@ -981,6 +981,38 @@ function Cutting() {
                   <small className="help-text">Auto-calculated from Diameter</small>
                 </div>
               )}
+              <div className="input-group">
+                <label>Total Cut Weight (kg) *</label>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input
+                    type="number"
+                    step="0.001"
+                    name="totalCutWeight"
+                    value={formData.totalCutWeight}
+                    onChange={handleInputChange}
+                    placeholder="0.520"
+                    required
+                    readOnly
+                    style={{ flex: 1 }}
+                  />
+
+                  {/* NEW: quick compute button */}
+
+                </div>
+
+                <small className="help-text">Weight per piece including end piece and bhuki (if circular)</small>
+                <button
+                  type="button"
+                  className="small-btn"
+                  title="Compute from min/max + end + bhuki"
+                  onClick={() => computeTotalCutWeightFromParts()}
+                >
+                  ⚙️ Compute
+                </button>
+              </div>
+
+
+
               <div className="input-group">
                 <label>Remarks</label>
                 <textarea

@@ -93,12 +93,12 @@ const forgingSchema = new mongoose.Schema({
     },
 
     // Scrap pieces (damaged during forging)
-    scrapPieces: {
-      type: Number,
-      required: [true, 'Scrap pieces count is required'],
-      default: 0,
-      min: [0, 'Scrap pieces cannot be negative']
-    },
+    // scrapPieces: {
+    //   type: Number,
+    //   required: [true, 'Scrap pieces count is required'],
+    //   default: 0,
+    //   min: [0, 'Scrap pieces cannot be negative']
+    // },
 
     // Final OK pieces
     finalOkPieces: {

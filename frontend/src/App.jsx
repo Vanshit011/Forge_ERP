@@ -10,10 +10,13 @@ import IncomingStock from './components/IncomingStock';
 import Cutting from './components/Cutting';
 import Forging from './components/Forging';
 import Dispatch from './components/Dispatch';
+import ScrollToTop from './components/ScrollToTop';
+
 
 function App() {
   return (
     <Router>
+      <ScrollToTop />  {/* ← Add this line */}
       <Routes>
         {/* Public Route */}
         <Route path="/login" element={<Login />} />
@@ -40,7 +43,7 @@ function AppContent() {
     { path: '/incoming-stock', icon: '📦', label: 'Incoming Stock', color: '#48bb78', shortcut: 'S' },
     { path: '/cutting', icon: '✂️', label: 'Cutting', color: '#ed8936', shortcut: 'C' },
     { path: '/forging', icon: '🔨', label: 'Forging', color: '#9f7aea', shortcut: 'F' },
-    {path: '/dispatch', icon: '🚚', label: 'Dispatch', color: '#f56565', shortcut: 'X' }
+    { path: '/dispatch', icon: '🚚', label: 'Dispatch', color: '#f56565', shortcut: 'X' }
   ];
 
   // Keyboard shortcuts effect

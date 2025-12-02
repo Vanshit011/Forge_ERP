@@ -30,6 +30,23 @@ function Forging() {
     }
   });
 
+useEffect(() => {
+  const handleShortcut = (e) => {
+    // Press INSERT key to open Add Stock
+    if (e.key === "Insert") {
+      e.preventDefault();
+      setShowForm(true);
+    }
+  };
+
+  window.addEventListener("keydown", handleShortcut);
+
+  return () => {
+    window.removeEventListener("keydown", handleShortcut);
+  };
+}, []);
+
+  
   useEffect(() => {
     fetchForgings();
     fetchAvailableCuttingRecords();
@@ -208,7 +225,7 @@ function Forging() {
         alert('✅ Forging record created successfully!');
       }
 
-      alert('✅ Forging record created successfully!');
+      // alert('✅ Forging record created successfully!');
       resetForm();
       fetchForgings();
       fetchAvailableCuttingRecords();
@@ -379,13 +396,20 @@ function Forging() {
                             <p className="metric-value">{item.rejectionQty} pcs</p>
                           </div>
                         </div>
-                        <div className="metric-box">
+                        {/* <div className="metric-box">
+                          <span className="metric-icon"></span>
+                          <div>
+                            <p className="metric-label">Remark</p>
+                            <p className="metric-value">{item.remarks} pcs</p>
+                          </div>
+                        </div> */}
+                        {/* <div className="metric-box">
                           <span className="metric-icon">⚠️</span>
                           <div>
                             <p className="metric-label">Scrap</p>
                             <p className="metric-value">{item.forgingResults?.scrapPieces} pcs</p>
                           </div>
-                        </div>
+                        </div> */}
                         <div className="metric-box">
                           <span className="metric-icon">♻️</span>
                           <div>
@@ -435,7 +459,8 @@ function Forging() {
           ) : (
             <>
               <span>+</span>
-              <span>New Forging</span>
+              
+                <span>Add Forging</span>
             </>
           )}
         </button>
@@ -647,7 +672,7 @@ function Forging() {
                   name="forgingQty"
                   value={formData.forgingQty}
                   onChange={handleInputChange}
-                  placeholder="1000"
+                  // placeholder="1000"
                   required
                   min="1"
                   max={selectedCutting?.availablePieces || 99999}
@@ -665,13 +690,13 @@ function Forging() {
                   name="forgingRingWeight"
                   value={formData.forgingRingWeight}
                   onChange={handleInputChange}
-                  placeholder="0.450"
+                  // placeholder="0.450"
                   required
                 />
               </div>
 
               <div className="input-group">
-                <label>Babari Per Piece (kg) *</label>
+                <label>Scrap Per Piece (kg) *</label>
                 <input
                   type="number"
                   step="0.001"
@@ -697,7 +722,7 @@ function Forging() {
                 />
               </div>
 
-              <div className="input-group">
+              {/* <div className="input-group">
                 <label>Scrap Pieces *</label>
                 <input
                   type="number"
@@ -709,7 +734,7 @@ function Forging() {
                   min="0"
                 />
                 <small className="help-text">Damaged during forging</small>
-              </div>
+              </div> */}
 
               <div className="input-group">
                 <label>Final OK Pieces *</label>
@@ -828,10 +853,10 @@ function Forging() {
                     <span>❌ Rejections:</span>
                     <strong className="text-red">{forging.rejectionQty} pcs</strong>
                   </div>
-                  <div className="info-row">
+                  {/* <div className="info-row">
                     <span>⚠️ Scrap:</span>
                     <strong className="text-orange">{forging.forgingResults?.scrapPieces} pcs</strong>
-                  </div>
+                  </div> */}
                   <div className="info-row">
                     <span>♻️ Babari/Pc:</span>
                     <strong>{forging.forgingResults?.babariPerPiece?.toFixed(3)} kg</strong>

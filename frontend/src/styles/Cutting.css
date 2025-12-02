@@ -669,7 +669,7 @@
 .info-item {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 7px;
 }
 
 .info-item span {

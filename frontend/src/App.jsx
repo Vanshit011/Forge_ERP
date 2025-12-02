@@ -12,6 +12,7 @@ import Forging from './components/Forging';
 import Dispatch from './components/Dispatch';
 import ScrollToTop from './components/ScrollToTop';
 
+import avatarImg from './assets/kranti.png';
 
 function App() {
   return (
@@ -294,9 +295,24 @@ function AppContent() {
           {/* Sidebar Footer */}
           <div className="sidebar-footer">
             <div className="user-profile-sidebar">
-              <div className="user-avatar-sidebar">
-                {user.name ? user.name.charAt(0).toUpperCase() : '👤'}
-              </div>
+              {/* <div className="user-avatar-sidebar"> */}
+                <div className="user-avatar-top">
+                  {user.image ? (
+                    <img
+                      src={user.image}
+                      alt={user.name || 'User Avatar'}
+                      className="avatar-image"
+                    />
+                  ) : (
+                    <img
+                      src={avatarImg}
+                      alt="Default Avatar"
+                      className="avatar-image"
+                    />
+                  )}
+                </div>
+                {/* {user.name ? user.name.charAt(0).toUpperCase() : '👤'} */}
+              {/* </div> */}
               {isSidebarOpen && (
                 <div className="user-info-sidebar">
                   <p className="user-name-sidebar">{user.name || 'User'}</p>
@@ -372,7 +388,19 @@ function AppContent() {
             </div>
             <div className="user-badge-top">
               <div className="user-avatar-top">
-                {user.name ? user.name.charAt(0).toUpperCase() : '👤'}
+                {user.image ? (
+                  <img
+                    src={user.image}
+                    alt={user.name || 'User Avatar'}
+                    className="avatar-image"
+                  />
+                ) : (
+                  <img
+                    src={avatarImg}
+                    alt="Default Avatar"
+                    className="avatar-image"
+                  />
+                )}
               </div>
               {user.name && (
                 <div className="user-info-top">
@@ -381,6 +409,8 @@ function AppContent() {
                 </div>
               )}
             </div>
+
+
             <button className="logout-btn-top" onClick={handleLogout} title="Logout">
               <span>🚪</span>
             </button>

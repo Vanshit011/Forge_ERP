@@ -30,23 +30,23 @@ function Forging() {
     }
   });
 
-useEffect(() => {
-  const handleShortcut = (e) => {
-    // Press INSERT key to open Add Stock
-    if (e.key === "Insert") {
-      e.preventDefault();
-      setShowForm(true);
-    }
-  };
+  useEffect(() => {
+    const handleShortcut = (e) => {
+      // Press INSERT key to open Add Stock
+      if (e.key === "Insert") {
+        e.preventDefault();
+        setShowForm(true);
+      }
+    };
 
-  window.addEventListener("keydown", handleShortcut);
+    window.addEventListener("keydown", handleShortcut);
 
-  return () => {
-    window.removeEventListener("keydown", handleShortcut);
-  };
-}, []);
+    return () => {
+      window.removeEventListener("keydown", handleShortcut);
+    };
+  }, []);
 
-  
+
   useEffect(() => {
     fetchForgings();
     fetchAvailableCuttingRecords();
@@ -158,42 +158,85 @@ useEffect(() => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
 
-    if (name.startsWith('forgingResults.')) {
-      const field = name.split('.')[1];
-      setFormData({
-        ...formData,
+    if (name.startsWith("forgingResults.")) {
+      const field = name.split(".")[1];
+
+      // update forgingResults field
+      setFormData((prev) => ({
+        ...prev,
         forgingResults: {
-          ...formData.forgingResults,
-          [field]: value
-        }
-      });
+          ...prev.forgingResults,
+          [field]: value,
+        },
+      }));
     } else {
-      setFormData({
-        ...formData,
-        [name]: value
-      });
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
     }
 
-    // Auto-calculate finalOkPieces
-    if (name === 'forgingQty' || name === 'rejectionQty' || name === 'forgingResults.scrapPieces') {
-      const qty = name === 'forgingQty' ? parseInt(value) || 0 : parseInt(formData.forgingQty) || 0;
-      const rejection = name === 'rejectionQty' ? parseInt(value) || 0 : parseInt(formData.rejectionQty) || 0;
-      const scrap = name === 'forgingResults.scrapPieces' ? parseInt(value) || 0 : parseInt(formData.forgingResults.scrapPieces) || 0;
+    // ================================
+    // 🔥 AUTO CALCULATE SCRAP PER PIECE
+    // ================================
+    let cuttingWeight = selectedCutting?.cuttingWeightPerPiece
+      ? parseFloat(selectedCutting.cuttingWeightPerPiece)
+      : 0;
+
+    let ringWeight = name === "forgingRingWeight"
+      ? parseFloat(value)
+      : parseFloat(formData.forgingRingWeight);
+
+    let scrapPerPiece = cuttingWeight - ringWeight;
+
+    if (scrapPerPiece < 0) scrapPerPiece = 0;
+
+    setFormData((prev) => ({
+      ...prev,
+      forgingResults: {
+        ...prev.forgingResults,
+        babariPerPiece: scrapPerPiece.toFixed(3), // auto update
+        scrapPieces: prev.forgingResults.scrapPieces,
+        finalOkPieces: prev.forgingResults.finalOkPieces,
+      },
+    }));
+
+    // =====================================
+    // ✔ Auto-calc final OK pieces as before
+    // =====================================
+    if (
+      name === "forgingQty" ||
+      name === "rejectionQty" ||
+      name === "forgingResults.scrapPieces"
+    ) {
+      const qty =
+        name === "forgingQty" ? parseInt(value) || 0 : parseInt(formData.forgingQty) || 0;
+
+      const rejection =
+        name === "rejectionQty" ? parseInt(value) || 0 : parseInt(formData.rejectionQty) || 0;
+
+      const scrap =
+        name === "forgingResults.scrapPieces"
+          ? parseInt(value) || 0
+          : parseInt(formData.forgingResults.scrapPieces) || 0;
 
       const finalOk = qty - rejection - scrap;
 
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        forgingQty: name === 'forgingQty' ? value : prev.forgingQty,
-        rejectionQty: name === 'rejectionQty' ? value : prev.rejectionQty,
+        forgingQty: name === "forgingQty" ? value : prev.forgingQty,
+        rejectionQty: name === "rejectionQty" ? value : prev.rejectionQty,
         forgingResults: {
           ...prev.forgingResults,
-          scrapPieces: name === 'forgingResults.scrapPieces' ? value : prev.forgingResults.scrapPieces,
-          finalOkPieces: Math.max(0, finalOk).toString()
-        }
+          scrapPieces:
+            name === "forgingResults.scrapPieces" ? value : prev.forgingResults.scrapPieces,
+          finalOkPieces: Math.max(0, finalOk).toString(),
+          babariPerPiece: prev.forgingResults.babariPerPiece,
+        },
       }));
     }
   };
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -459,8 +502,8 @@ useEffect(() => {
           ) : (
             <>
               <span>+</span>
-              
-                <span>Add Forging</span>
+
+              <span>Add Forging</span>
             </>
           )}
         </button>
@@ -621,7 +664,7 @@ useEffect(() => {
                       <strong>{selectedCutting.dia} mm</strong>
                     </div>
                     <div className="info-item">
-                      <span>Part Name:</span>
+                      <span>Part Number:</span>
                       <strong>{selectedCutting.partName}</strong>
                     </div>
                     <div className="info-item">

@@ -4,7 +4,7 @@ const cuttingSchema = new mongoose.Schema({
   stockId: { type: mongoose.Schema.Types.ObjectId, ref: 'IncomingStock', required: true },
   cuttingType: { type: String, enum: ['SHARING', 'CIRCULAR'], required: true },
   date: { type: Date, default: Date.now },
-  partName: { type: String, required: true },
+  partName: { type: Number, required: true },
   material: String,
   colorCode: String,
   dia: { type: Number, required: true },

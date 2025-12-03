@@ -905,7 +905,7 @@ function Cutting() {
               </div>
 
               <div className="input-group">
-                <label>Part Name *</label>
+                <label>Part Number*</label>
                 <input
                   type="text"
                   name="partName"

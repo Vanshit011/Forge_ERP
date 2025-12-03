@@ -531,7 +531,7 @@ function Dashboard() {
           <div className="flow-stage">
             <div className="flow-title">INCOMING</div>
             <div className="flow-box">
-              <div className="flow-number">{stats.totalQuantity.toFixed(2)} kg</div>
+              <div className="flow-number">{stats.availableQuantity.toFixed(2)} kg</div>
               <div className="flow-label">Raw Steel</div>
             </div>
           </div>

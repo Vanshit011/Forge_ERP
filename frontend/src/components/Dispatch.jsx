@@ -120,8 +120,8 @@ function Dispatch() {
       {/* Header */}
       <div className="forging-header">
         <div className="title-group">
-          <h1>🚚 Dispatch Operations</h1>
-          <p className="subtitle">Manage outgoing material and challans</p>
+          {/* <h1>🚚 Dispatch Operations</h1> */}
+          {/* <p className="subtitle">Manage outgoing material and challans</p> */}
         </div>
         <button className={`add-btn ${showForm ? 'cancel' : ''}`} onClick={() => setShowForm(!showForm)}>
           {showForm ? '✖ Cancel' : '+ New Dispatch'}

@@ -456,7 +456,7 @@ function Forging() {
                         <div className="metric-box">
                           <span className="metric-icon">♻️</span>
                           <div>
-                            <p className="metric-label">Babari/Pc</p>
+                            <p className="metric-label">Scrap/Pc</p>
                             <p className="metric-value">{item.forgingResults?.babariPerPiece?.toFixed(3)} kg</p>
                           </div>
                         </div>
@@ -481,8 +481,8 @@ function Forging() {
       {/* Header */}
       <div className="forging-header">
         <div className="title-group">
-          <h1>🔨 Forging Operations</h1>
-          <p className="subtitle">Manage forging process and track production</p>
+          {/* <h1>🔨 Forging Operations</h1> */}
+          {/* <p className="subtitle">Manage forging process and track production</p> */}
         </div>
         <button
           className={`add-btn ${showForm ? 'cancel' : ''}`}
@@ -532,18 +532,18 @@ function Forging() {
             <p>Rejections</p>
           </div>
         </div>
-        <div className="forging-stat-card">
+        {/* <div className="forging-stat-card">
           <div className="stat-icon-modern">⚠️</div>
           <div className="stat-info-modern">
             <h3>{stats.totalScrap}</h3>
             <p>Scrap Pieces</p>
           </div>
-        </div>
+        </div> */}
         <div className="forging-stat-card">
           <div className="stat-icon-modern">♻️</div>
           <div className="stat-info-modern">
             <h3>{stats.totalBabari.toFixed(2)}</h3>
-            <p>Total Babari (kg)</p>
+            <p>Total Scrap (kg)</p>
           </div>
         </div>
         <div className="forging-stat-card">
@@ -847,7 +847,7 @@ function Forging() {
                   </div>
                   <div className="card-actions" style={{ display: 'flex', gap: '8px' }}>
                     {/* ADD THIS BUTTON 👇 */}
-                    <button className="edit-btn-forging" onClick={() => handleEditForging(forging)} title="Edit">✏️</button>
+                    {/* <button className="edit-btn-forging" onClick={() => handleEditForging(forging)} title="Edit">✏️</button> */}
 
                     <button className="delete-btn-forging" onClick={() => handleDelete(forging._id)} title="Delete">🗑️</button>
                   </div>

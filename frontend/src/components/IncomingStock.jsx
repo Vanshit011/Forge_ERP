@@ -342,8 +342,8 @@ function IncomingStock() {
       <div className="stock-header">
         <div className="header-left">
           <div className="title-group">
-            <h1>📦 Incoming Stock</h1>
-            <p className="subtitle">Manage your raw materials inventory</p>
+            {/* <h1>📦 Incoming Stock</h1> */}
+            {/* <p className="subtitle">Manage your raw materials inventory</p> */}
           </div>
         </div>
         <button
@@ -667,13 +667,13 @@ function IncomingStock() {
                     {stock.material}
                   </div>
                   <div className="stock-actions">
-                    <button
+                    {/* <button
                       className="edit-btn-mini"
                       onClick={() => handleEdit(stock)}
                       title="Edit"
                     >
                       ✏️
-                    </button>
+                    </button> */}
                     <button
                       className="delete-btn-mini"
                       onClick={() => handleDelete(stock._id)}

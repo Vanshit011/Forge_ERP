@@ -179,12 +179,12 @@ function Cutting() {
         stockId: stockId,
         material: stock.material,
         colorCode: stock.colorCode,
-        partName: stock.partName,
+        partName: stock.partName || stock.partNumber,   // fallback
         dia: stock.dia
       }));
     } else {
       setSelectedStock(null);
-      setFormData(prev => ({ ...prev, stockId: '', material: '', colorCode: '', partName: '', dia: '' }));
+      setFormData(prev => ({ ...prev, stockId: '', material: '', colorCode: '', partNumber: '', dia: '' }));
     }
   };
 
@@ -240,7 +240,10 @@ function Cutting() {
       alert('Please calculate first!');
       return;
     }
-
+    if (!formData.partName) {
+      alert('Part Name is required');
+      return;
+    }
     try {
       setLoading(true);
 
@@ -278,7 +281,7 @@ function Cutting() {
         stockId: '',
         cuttingType: activeTab.toUpperCase(),
         date: new Date().toISOString().split('T')[0],
-        partName: '',
+        partNumber: '',
         dia: '',
         material: '',
         colorCode: '',
@@ -371,7 +374,7 @@ function Cutting() {
           totalWaste: 0,
           operations: 0,
           stockQuantity: stock?.quantity || 0,
-          partName: stock?.partName || cutting.partName,
+          partNumber: stock?.partNumber || cutting.partNumber,
           uniqueWeights: []
         };
       }
@@ -403,7 +406,7 @@ function Cutting() {
           totalWaste: 0,
           operations: 0,
           stockQuantity: stock.quantity,
-          partName: stock.partName,
+          partNumber: stock.partNumber,
           uniqueWeights: []
         };
       }
@@ -454,7 +457,7 @@ function Cutting() {
       .map(cutting => ({
         // Add ID for React keys
         _id: cutting._id,
-        partName: cutting.partName,
+        partNumber: cutting.partNumber,
         targetPieces: cutting.targetPieces,
 
         // 🚨 CRITICAL ADDITION: Pass the specific cut weight for this record
@@ -532,7 +535,7 @@ function Cutting() {
                         <div className="breakdown-info">
                           <span className="breakdown-icon">✂️</span>
                           <div>
-                            <span className="breakdown-title">{item.partName}</span>
+                            <span className="breakdown-title">{item.partNumber}</span>
                             <span className="breakdown-subtitle">{new Date(item.date).toLocaleDateString()}</span>
                           </div>
                         </div>
@@ -634,41 +637,17 @@ function Cutting() {
       )}
 
       {/* Header */}
-      <div className="cutting-header">
-        <div className="title-group">
-          <h1>✂️ Cutting Operations</h1>
-          <p className="subtitle">Manage sharing and circular cutting processes</p>
-        </div>
-        <button
-          className={`add-btn ${showForm ? 'cancel' : ''}`}
-          onClick={() => {
-            if (showForm) {
-              setShowForm(false);
-              setEditingCutting(null);
-              setCalculation(null);
-              setSelectedStock(null);
-            } else {
-              setShowForm(true);
-              setEditingCutting(null);
-            }
-          }}
-        >
-          {showForm ? (
-            <>
-              <span>✖</span>
-              <span>Cancel</span>
-            </>
-          ) : (
-            <>
-              <span>+</span>
-              <span>Add Cutting</span>
-            </>
-          )}
-        </button>
-      </div>
+      {/*  */}
+      {/*  */}
+      {/* <h1>✂️ Cutting Operations</h1> */}
+      {/* <p className="subtitle">Manage sharing and circular cutting processes</p> */}
+      {/* </div> */}
+
+      {/* </div> */}
 
       {/* Tabs */}
       <div className="tabs-modern">
+
         <button
           className={`tab-modern ${activeTab === 'sharing' ? 'active' : ''}`}
           onClick={() => handleTabChange('sharing')}
@@ -679,6 +658,7 @@ function Cutting() {
             <span className="tab-count">{cuttings.filter(c => c.cuttingType === 'SHARING').length} ops</span>
           </div>
         </button>
+
         <button
           className={`tab-modern ${activeTab === 'circular' ? 'active' : ''}`}
           onClick={() => handleTabChange('circular')}
@@ -689,83 +669,41 @@ function Cutting() {
             <span className="tab-count">{cuttings.filter(c => c.cuttingType === 'CIRCULAR').length} ops</span>
           </div>
         </button>
-      </div>
 
-      {/* Stock-wise Cutting Summary */}
-      {stocks.length > 0 && (
-        <div className="material-cutting-breakdown">
-          <h2>📦 Stock-wise Cutting Summary</h2>
-          <div className="material-cutting-grid">
-            {stockWiseBreakdown.map((stock) => (
-              <div
-                key={stock.stockId}
-                className={`material-cutting-card ${stock.operations > 0 ? 'clickable running' : 'disabled'}`}
-                onClick={() => stock.operations > 0 && handleStockCardClick(stock)}
-                style={{
-                  cursor: stock.operations > 0 ? 'pointer' : 'default',
-                  border: stock.operations > 0 ? '1px solid #cbd5e1' : '1px dashed #e2e8f0',
-                  opacity: stock.operations > 0 ? 1 : 0.7
-                }}
-              >
-                {/* Card Header */}
-                <div className="material-cutting-header" style={{ borderColor: getColorStyle(stock.colorCode) }}>
-                  <span className="material-dot-cutting" style={{ backgroundColor: getColorStyle(stock.colorCode) }}></span>
-                  <div className="material-header-info">
-                    <h3>{stock.material}</h3>
-                    <span className="diameter-badge">{stock.dia} mm</span>
+        {/* 👇 THIS pushes Add Cutting button to the right */}
+        <div className="flex-spacer"></div>
 
-                    {/* DISTINCT CUT WEIGHTS */}
-                    {stock.uniqueWeights.length > 0 && (
-                      <div className="cut-weights-list">
-                        {stock.uniqueWeights.map((wt, i) => (
-                          <span key={i} className="cutweight-badge" style={{ marginRight: '4px', marginBottom: '4px' }}>
-                            {wt} kg
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    {stock.stockQuantity > 0 && (
-                      <span className="available-badge">{stock.stockQuantity} kg</span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Stats */}
-                <div className="material-cutting-stats">
-                  <div className="cutting-stat-item">
-                    <span className="stat-icon-small">🔢</span>
-                    <div>
-                      <p className="stat-value-small">{stock.totalPieces}</p>
-                      <p className="stat-label-small">Pieces Cut</p>
-                    </div>
-                  </div>
-
-                  <div className="cutting-stat-item">
-                    <span className="stat-icon-small">⚠️</span>
-                    <div>
-                      <p className="stat-value-small text-blue">{stock.totalWaste}</p>
-                      <p className="stat-label-small">totalWaste (Kg)</p>
-                    </div>
-                  </div>
-
-                  <div className="cutting-stat-item">
-                    <span className="stat-icon-small">⚖️</span>
-                    <div>
-                      <p className="stat-value-small">{stock.totalSteelUsed.toFixed(2)} kg</p>
-                      <p className="stat-label-small">Used</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Footer */}
-                {stock.operations > 0 && <div className="card-hint">👆 Click to see details</div>}
-                {stock.operations === 0 && <div className="card-no-ops">No operations yet</div>}
-              </div>
-            ))}
+        <div className="cutting-header">
+          <div className="title-group">
+            <button
+              className={`add-btn ${showForm ? 'cancel' : ''}`}
+              onClick={() => {
+                if (showForm) {
+                  setShowForm(false);
+                  setEditingCutting(null);
+                  setCalculation(null);
+                  setSelectedStock(null);
+                } else {
+                  setShowForm(true);
+                  setEditingCutting(null);
+                }
+              }}
+            >
+              {showForm ? (
+                <>
+                  <span>✖</span>
+                  <span>Cancel</span>
+                </>
+              ) : (
+                <>
+                  <span>+</span>
+                  <span>Add Cutting</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
-      )}
+      </div>
 
 
       {/* Overall Stats */}
@@ -837,7 +775,7 @@ function Cutting() {
                     {stock.material} ({stock.colorCode}) |
                     Dia: {stock.dia}mm |
                     Available: {stock.quantity.toFixed(2)} kg |
-                    {stock.partName}
+                    {stock.partNumber}
                   </option>
                 ))}
               </select>
@@ -905,14 +843,21 @@ function Cutting() {
               </div>
 
               <div className="input-group">
-                <label>Part Number*</label>
+                <label>Part Number *</label>
                 <input
                   type="text"
-                  name="partName"
-                  value={formData.partName}
-                  onChange={handleInputChange}
+                  name="partNumber"
+                  value={formData.partName || ""}
+                  onChange={(e) => {
+                    const value = e.target.value.toUpperCase(); // Converts to caps automatically
+                    // Allow only letters, numbers and hyphen
+                    if (/^[A-Z0-9-]*$/.test(value)) {
+                      handleInputChange({ target: { name: "partName", value } });
+                    }
+                  }}
                   required
                 />
+
               </div>
 
               <div className="input-group">
@@ -1158,7 +1103,7 @@ function Cutting() {
                 {/* Card Header with Actions */}
                 <div className="cutting-card-header">
                   <div className="header-info">
-                    <h3>{cutting.partName}</h3>
+                    <h3>Part Number: {cutting.partName}</h3>
                     <span
                       className="type-badge"
                       style={{ backgroundColor: getColorStyle(cutting.colorCode) }}
@@ -1167,13 +1112,13 @@ function Cutting() {
                     </span>
                   </div>
                   <div className="card-actions">
-                    <button
+                    {/* <button
                       className="edit-btn-cutting"
                       onClick={() => handleEditCutting(cutting)}
                       title="Edit"
                     >
                       ✏️
-                    </button>
+                    </button> */}
                     <button
                       className="delete-btn-cutting"
                       onClick={() => handleDeleteCutting(cutting._id)}
@@ -1186,6 +1131,9 @@ function Cutting() {
 
                 {/* Stock & Diameter Info */}
                 <div className="stock-info-badge">
+                  {/* <span className="badge-item">
+                    <span className="badge-icon">📦</span>
+                  </span> */}
                   <span className="badge-item">
                     <span className="badge-icon">📏</span>
                     <span className="badge-text">Dia: {cutting.dia} mm</span>

@@ -46,6 +46,7 @@ const incomingStockSchema = new mongoose.Schema({
     trim: true
   },
 
+  // // 👇 ADD THIS BACK, DON'T REMOVE
   // partName: {
   //   type: String,
   //   required: [true, 'Part name is required'],
@@ -67,7 +68,7 @@ const incomingStockSchema = new mongoose.Schema({
 });
 
 // Material to Color mapping
-incomingStockSchema.statics.getMaterialColorMap = function() {
+incomingStockSchema.statics.getMaterialColorMap = function () {
   return {
     'SAE52100': { color: 'GREEN', diameters: [38] },
     'SAE8620': { color: 'ORANGE', diameters: [36, 40, 45, 50, 53, 56, 60] },
@@ -82,15 +83,15 @@ incomingStockSchema.statics.getMaterialColorMap = function() {
 };
 
 // Pre-save to set color code based on material
-incomingStockSchema.pre('save', function(next) {
+incomingStockSchema.pre('save', function (next) {
   const materialColorMap = this.constructor.getMaterialColorMap();
   const materialInfo = materialColorMap[this.material];
-  
+
   if (materialInfo) {
     this.colorCode = materialInfo.color;
     this.availableDiameters = materialInfo.diameters;
   }
-  
+
   next();
 });
 

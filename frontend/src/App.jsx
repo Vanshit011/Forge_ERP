@@ -430,7 +430,7 @@ function AppContent() {
         </div>
 
         {/* Footer */}
-        <footer className="app-footer">
+        {/* <footer className="app-footer">
           <div className="footer-left">
             <p>© 2025 Forge ERP. All rights reserved.</p>
             <p className="footer-tagline">Manufacturing Excellence</p>
@@ -442,7 +442,7 @@ function AppContent() {
               System Online
             </span>
           </div>
-        </footer>
+        </footer> */}
       </main>
     </div>
   );
